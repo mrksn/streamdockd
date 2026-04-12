@@ -103,7 +103,7 @@ The web UI at `http://127.0.0.1:17890` is the intended way to manage it. The JSO
 
 ### Button action types
 
-Each button has an `type` field that controls what happens when it is pressed:
+Each button has a `type` field that controls what happens when it is pressed:
 
 | `type` | Behaviour |
 |--------|-----------|

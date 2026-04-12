@@ -1886,7 +1886,7 @@
         if (!fieldGroup || document.getElementById(`action_type_${i}`)) continue;
         const typeRow = document.createElement("label");
         typeRow.className = "field-label act-type-row";
-        typeRow.innerHTML = `ACT<select id="action_type_${i}" class="act-type-sel">
+        typeRow.innerHTML = `ACT<select id="action_type_${i}" class="act-type-sel" aria-label="Button ${i} action type">
           <option value="command">command</option>
           <option value="page_next">page: next ↓</option>
           <option value="page_prev">page: prev ↑</option>
@@ -1896,7 +1896,7 @@
         pageRow.className = "field-label act-page-row";
         pageRow.id = `act_page_row_${i}`;
         pageRow.style.display = "none";
-        pageRow.innerHTML = `PG#<input type="number" id="action_page_${i}" min="1" value="1" style="width:56px">`;
+        pageRow.innerHTML = `PG#<input type="number" id="action_page_${i}" min="1" value="1" style="width:56px" aria-label="Button ${i} target page number">`;
         fieldGroup.insertBefore(pageRow, fieldGroup.firstChild);
         fieldGroup.insertBefore(typeRow, fieldGroup.firstChild);
       }

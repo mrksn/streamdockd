@@ -91,8 +91,8 @@ class ConfigStore:
     def _merge_page_actions(self, template: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
         """Merge incoming page actions over a template, ensuring all slots are present."""
         page: Dict[str, Any] = {str(i): dict(template[str(i)]) for i in range(1, BUTTONS_PER_PAGE + 1)}
-        for key, action in page.items():
-            action.update(incoming.get(key, {}))
+        for key in page:
+            page[key].update(incoming.get(key, {}))
         return page
 
     def _merge_defaults(self, data: Dict[str, Any]) -> Dict[str, Any]:

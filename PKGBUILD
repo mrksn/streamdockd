@@ -29,7 +29,7 @@ source=(
     "sdk-${_sdk_commit}.tar.gz::https://github.com/MiraboxSpace/StreamDock-Device-SDK/archive/${_sdk_commit}.tar.gz"
 )
 sha256sums=(
-    'SKIP'  # fill in after v1.1.0 tag is pushed to GitHub
+    '4448748e7a7d6351c06892ec5443e92b96ed7b8c5727b5a616d8505668fccd6d'
     '4c9db9f155fbaa8747914c36e12cf90e485b05c5a57bdf173a79ee1746c66266'
 )
 

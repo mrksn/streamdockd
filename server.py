@@ -72,6 +72,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_error(HTTPStatus.NOT_FOUND, "not found")
 
     def do_POST(self):
+        if self.path == "/api/page":
+            self._handle_page_action()
+            return
         if self.path != "/api/config":
             self.send_error(HTTPStatus.NOT_FOUND, "not found")
             return
@@ -80,6 +83,38 @@ class RequestHandler(BaseHTTPRequestHandler):
             payload = self.rfile.read(length)
             data = json.loads(payload.decode("utf-8"))
             saved = self.config_ref.set(data)
+            self.daemon_ref.reload_and_apply()
+            self._send_json(saved)
+        except Exception as exc:
+            self.send_error(HTTPStatus.BAD_REQUEST, str(exc))
+
+    def _handle_page_action(self):
+        """Handle POST /api/page — switch the active page without a full UI reload."""
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            payload = self.rfile.read(length)
+            req = json.loads(payload.decode("utf-8"))
+            action = str(req.get("action", ""))
+            config = self.config_ref.get()
+            pages = config.get("pages", [])
+            if not pages:
+                self._send_json(config)
+                return
+            current = int(config.get("active_page", 0))
+            count = len(pages)
+            if action == "next":
+                new_page = (current + 1) % count
+            elif action == "prev":
+                new_page = (current - 1) % count
+            elif action == "goto":
+                target = int(req.get("page", 1)) - 1
+                new_page = max(0, min(count - 1, target))
+            else:
+                self.send_error(HTTPStatus.BAD_REQUEST, f"unknown action: {action}")
+                return
+            config["active_page"] = new_page
+            config["actions"] = pages[new_page]
+            saved = self.config_ref.set(config)
             self.daemon_ref.reload_and_apply()
             self._send_json(saved)
         except Exception as exc:

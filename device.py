@@ -96,7 +96,35 @@ class StreamDockDaemon:
         run_on_release = bool(action.get("run_on_release", False))
         should_run = state == 0 if run_on_release else state == 1
         if should_run:
-            self._run_action(action, key)
+            action_type = str(action.get("type", "command"))
+            if action_type in ("page_next", "page_prev", "page_goto"):
+                self._handle_page_action(action_type, action)
+            else:
+                self._run_action(action, key)
+
+    def _handle_page_action(self, action_type: str, action: Dict[str, Any]):
+        """Switch the active button page in response to a page-navigation button press."""
+        config = self.config_store.get()
+        pages = config.get("pages", [])
+        if not pages:
+            return
+        current = int(config.get("active_page", 0))
+        count = len(pages)
+        if action_type == "page_next":
+            new_page = (current + 1) % count
+        elif action_type == "page_prev":
+            new_page = (current - 1) % count
+        elif action_type == "page_goto":
+            # page field is 1-indexed in UI
+            target = int(action.get("page", 1)) - 1
+            new_page = max(0, min(count - 1, target))
+        else:
+            return
+        print(f"[page] switching from page {current + 1} to page {new_page + 1}", flush=True)
+        config["active_page"] = new_page
+        config["actions"] = pages[new_page]
+        self.config_store.set(config)
+        self.reload_and_apply()
 
     def _apply_icons_locked(self):
         if self.device is None:

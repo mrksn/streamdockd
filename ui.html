@@ -727,6 +727,131 @@
     .status-msg.ok  { color: var(--green); }
     .status-msg.err { color: var(--red); }
 
+    /* ── Page navigation bar ── */
+    .page-nav {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+    .page-nav-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+    .page-nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .page-nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .page-nav-goto {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-indicator {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--ink);
+      background: var(--surface-2);
+      border: 1px solid var(--border-bright);
+      border-radius: 5px;
+      padding: 4px 10px;
+      min-width: 90px;
+      text-align: center;
+    }
+    .page-nav-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      background: var(--surface-2);
+      color: var(--cyan);
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background var(--t-fast), box-shadow var(--t-fast);
+    }
+    .page-nav-btn:hover:not(:disabled) {
+      background: var(--cyan-glow);
+      box-shadow: 0 0 8px var(--cyan-glow-lg);
+    }
+    .page-nav-btn:disabled { opacity: 0.35; cursor: default; }
+    .page-add-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      background: rgba(0,229,200,0.1);
+      color: var(--cyan);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: background var(--t-fast), box-shadow var(--t-fast);
+    }
+    .page-add-btn:hover {
+      background: rgba(0,229,200,0.2);
+      box-shadow: 0 0 8px var(--cyan-glow-lg);
+    }
+    .page-del-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 1px;
+      background: transparent;
+      color: var(--red);
+      border: 1px solid var(--red);
+      border-radius: 6px;
+      padding: 4px 10px;
+      cursor: pointer;
+      opacity: 0.65;
+      transition: opacity var(--t-fast), background var(--t-fast);
+    }
+    .page-del-btn:hover:not(:disabled) { opacity: 1; background: rgba(255,68,102,0.1); }
+    .page-del-btn:disabled { opacity: 0.2; cursor: default; }
+    .page-goto-input {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--cyan);
+      background: var(--surface-2);
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      padding: 4px 6px;
+      width: 52px;
+      outline: none;
+      -moz-appearance: textfield;
+    }
+    .page-goto-input::-webkit-inner-spin-button,
+    .page-goto-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .page-goto-input:focus { border-color: var(--cyan-dim); box-shadow: 0 0 0 2px var(--cyan-glow); }
+
+    /* ── Action type selector inside button cards ── */
+    .act-type-row select,
+    .act-page-row input {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface-2);
+      color: var(--ink);
+      border: 1px solid var(--border-bright);
+      border-radius: 5px;
+      padding: 3px 5px;
+      outline: none;
+    }
+    .act-type-row select:focus,
+    .act-page-row input:focus { border-color: var(--cyan-dim); }
+    .act-type-row select option { background: var(--surface-2); }
+
     /* ── Responsive ── */
     @media (max-width: 1200px) {
       .btn-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -794,6 +919,24 @@
     </div>
     </div>
 
+    <div class="page-nav" role="navigation" aria-label="Button page navigation">
+      <span class="page-nav-label">Pages</span>
+      <div class="page-nav-controls">
+        <button type="button" class="page-nav-btn" id="page-prev-btn" onclick="prevPage()" title="Previous page" aria-label="Previous page">← PREV</button>
+        <span class="page-indicator" id="page-indicator">PAGE 1 / 1</span>
+        <button type="button" class="page-nav-btn" id="page-next-btn" onclick="nextPage()" title="Next page" aria-label="Next page">NEXT →</button>
+      </div>
+      <div class="page-nav-actions">
+        <button type="button" class="page-add-btn" onclick="addPage()" title="Add new page" aria-label="Add page">+ ADD PAGE</button>
+        <button type="button" class="page-del-btn" id="page-del-btn" onclick="deletePage()" title="Delete current page" aria-label="Delete page">DEL PAGE</button>
+      </div>
+      <div class="page-nav-goto">
+        <span class="page-nav-label">Go to</span>
+        <input type="number" id="goto-page-input" min="1" value="1" class="page-goto-input" aria-label="Go to page number">
+        <button type="button" class="page-nav-btn" onclick="gotoInputPage()" title="Go to page" aria-label="Go">GO</button>
+      </div>
+    </div>
+
     <div class="section-head">
       <span class="section-label">Button Actions</span>
       <div class="section-line"></div>
@@ -812,11 +955,6 @@
                     <input type="checkbox" id="enabled_1" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_1" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -856,11 +994,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_2" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -898,11 +1031,6 @@
                     <input type="checkbox" id="enabled_3" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_3" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -942,11 +1070,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_4" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -984,11 +1107,6 @@
                     <input type="checkbox" id="enabled_5" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_5" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -1082,11 +1200,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_6" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -1124,11 +1237,6 @@
                     <input type="checkbox" id="enabled_7" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_7" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -1168,11 +1276,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_8" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -1211,11 +1314,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_9" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -1253,11 +1351,6 @@
                     <input type="checkbox" id="enabled_10" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_10" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -1351,11 +1444,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_11" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -1393,11 +1481,6 @@
                     <input type="checkbox" id="enabled_12" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_12" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -1437,11 +1520,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_13" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -1480,11 +1558,6 @@
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
                   </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_14" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
-                  </label>
                 </div>
               </div>
               <div class="field-group">
@@ -1522,11 +1595,6 @@
                     <input type="checkbox" id="enabled_15" >
                     <span class="pill-track"><span class="pill-thumb"></span></span>
                     <span class="pill-label">ON</span>
-                  </label>
-                  <label class="toggle-pill">
-                    <input type="checkbox" id="release_15" >
-                    <span class="pill-track"><span class="pill-thumb"></span></span>
-                    <span class="pill-label">↑REL</span>
                   </label>
                 </div>
               </div>
@@ -1617,6 +1685,151 @@
   </div>
 
   <script>
+    /* ── Pagination state ── */
+    let pagesData = [];   // array of action-dicts, one per page
+    let currentPage = 0;
+
+    function updatePageNav() {
+      const total = pagesData.length;
+      const indicator = document.getElementById("page-indicator");
+      const prevBtn   = document.getElementById("page-prev-btn");
+      const nextBtn   = document.getElementById("page-next-btn");
+      const delBtn    = document.getElementById("page-del-btn");
+      const gotoInput = document.getElementById("goto-page-input");
+      if (indicator) indicator.textContent = `PAGE ${currentPage + 1} / ${total}`;
+      if (prevBtn)   prevBtn.disabled   = total <= 1;
+      if (nextBtn)   nextBtn.disabled   = total <= 1;
+      if (delBtn)    delBtn.disabled    = total <= 1;
+      if (gotoInput) { gotoInput.max = String(total); gotoInput.value = String(currentPage + 1); }
+    }
+
+    /* Collect all 15 button cards into an actions dict for the current page. */
+    function collectCurrentPageActions() {
+      const actions = {};
+      for (let i = 1; i <= 15; i++) {
+        const typeEl  = document.getElementById(`action_type_${i}`);
+        const pageEl  = document.getElementById(`action_page_${i}`);
+        const picker  = document.getElementById(`icon_color_picker_${i}`);
+        actions[String(i)] = {
+          enabled:         document.getElementById(`enabled_${i}`).checked,
+          command:         document.getElementById(`command_${i}`).value,
+          cwd:             document.getElementById(`cwd_${i}`).value,
+          icon:            document.getElementById(`icon_${i}`).value,
+          icon_color:      document.getElementById(`icon_color_${i}`).value,
+          icon_color_last: picker ? (picker.dataset.last || picker.value.replace(/^#/, "")) : "ffffff",
+          label:           document.getElementById(`btn_label_${i}`).value,
+          label_pos:       document.getElementById(`btn_label_pos_${i}`).value,
+          type:            typeEl  ? typeEl.value          : "command",
+          page:            pageEl  ? Number(pageEl.value)  : 1,
+        };
+      }
+      return actions;
+    }
+
+    /* Populate all 15 button cards from an actions dict. */
+    function populateButtonCards(actions) {
+      for (let i = 1; i <= 15; i++) {
+        const a = actions[String(i)] || {};
+        const enabledEl = document.getElementById("enabled_" + i);
+        if (enabledEl) enabledEl.checked = !!a.enabled;
+        const cmdEl = document.getElementById("command_" + i);
+        if (cmdEl) cmdEl.value = a.command || "";
+        const cwdEl = document.getElementById("cwd_" + i);
+        if (cwdEl) cwdEl.value = a.cwd || "";
+        const iconEl = document.getElementById("icon_" + i);
+        if (iconEl) iconEl.value = a.icon || "";
+        const iconColorEl = document.getElementById("icon_color_" + i);
+        if (iconColorEl) iconColorEl.value = a.icon_color || "";
+        const iconPickerEl = document.getElementById("icon_color_picker_" + i);
+        const lastColor = a.icon_color || a.icon_color_last || "ffffff";
+        if (iconPickerEl) { iconPickerEl.value = "#" + lastColor; iconPickerEl.dataset.last = lastColor; }
+        const labelEl = document.getElementById("btn_label_" + i);
+        if (labelEl) labelEl.value = a.label || "";
+        const labelPosEl = document.getElementById("btn_label_pos_" + i);
+        if (labelPosEl) labelPosEl.value = a.label_pos || "off";
+        const typeEl = document.getElementById("action_type_" + i);
+        if (typeEl) { typeEl.value = a.type || "command"; onActionTypeChange(i); }
+        const pageNumEl = document.getElementById("action_page_" + i);
+        if (pageNumEl) pageNumEl.value = a.page != null ? a.page : 1;
+        updatePreview(i);
+      }
+    }
+
+    /* Show / hide the page-number sub-field based on action type. */
+    function onActionTypeChange(i) {
+      const typeEl    = document.getElementById(`action_type_${i}`);
+      const pageRow   = document.getElementById(`act_page_row_${i}`);
+      if (!typeEl || !pageRow) return;
+      pageRow.style.display = typeEl.value === "page_goto" ? "" : "none";
+    }
+
+    /* ── Page navigation ── */
+    function goToPage(n) {
+      if (n < 0 || n >= pagesData.length) return;
+      pagesData[currentPage] = collectCurrentPageActions();
+      currentPage = n;
+      populateButtonCards(pagesData[currentPage]);
+      updatePageNav();
+      setActiveButton(1);
+      // Tell the daemon to switch the active page so device icons update immediately
+      fetch("/api/page", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "goto", page: currentPage + 1 })
+      }).catch(err => console.warn("[page] failed to sync page to device:", err));
+    }
+    function nextPage() { goToPage((currentPage + 1) % pagesData.length); }
+    function prevPage() { goToPage((currentPage - 1 + pagesData.length) % pagesData.length); }
+    function gotoInputPage() {
+      const v = parseInt(document.getElementById("goto-page-input").value, 10);
+      if (!isNaN(v)) goToPage(v - 1);
+    }
+
+    /* Add a blank page and navigate to it. */
+    function addPage() {
+      pagesData[currentPage] = collectCurrentPageActions();
+      const blank = {};
+      for (let i = 1; i <= 15; i++) {
+        blank[String(i)] = { enabled: false, type: "command", command: "", cwd: "",
+          icon: "", icon_color: "ffffff", label: "",
+          label_pos: "bottom", page: 1 };
+      }
+      pagesData.push(blank);
+      goToPage(pagesData.length - 1);
+    }
+
+    /* Delete the current page (blocked if only one page remains). */
+    function deletePage() {
+      if (pagesData.length <= 1) return;
+      pagesData.splice(currentPage, 1);
+      currentPage = Math.min(currentPage, pagesData.length - 1);
+      populateButtonCards(pagesData[currentPage]);
+      updatePageNav();
+    }
+
+    /* ── Inject action-type rows into each button card ── */
+    (function injectActionTypeRows() {
+      for (let i = 1; i <= 15; i++) {
+        const fieldGroup = document.querySelector(`#card_${i} .field-group`);
+        if (!fieldGroup || document.getElementById(`action_type_${i}`)) continue;
+        const typeRow = document.createElement("label");
+        typeRow.className = "field-label act-type-row";
+        typeRow.innerHTML = `ACT<select id="action_type_${i}" class="act-type-sel" aria-label="Button ${i} action type">
+          <option value="command">command</option>
+          <option value="page_next">page: next ↓</option>
+          <option value="page_prev">page: prev ↑</option>
+          <option value="page_goto">page: go to #</option>
+        </select>`;
+        const pageRow = document.createElement("label");
+        pageRow.className = "field-label act-page-row";
+        pageRow.id = `act_page_row_${i}`;
+        pageRow.style.display = "none";
+        pageRow.innerHTML = `PG#<input type="number" id="action_page_${i}" min="1" value="1" style="width:56px" aria-label="Button ${i} target page number">`;
+        fieldGroup.insertBefore(pageRow, fieldGroup.firstChild);
+        fieldGroup.insertBefore(typeRow, fieldGroup.firstChild);
+      }
+    })();
+
     function previewUrl(i) {
       const icon  = document.getElementById(`icon_${i}`).value || "";
       const rawColor = (document.getElementById(`icon_color_${i}`).value || "").trim();
@@ -1720,6 +1933,8 @@
         if (lblEl) lblEl.addEventListener("input", () => updatePreview(i));
         const posEl = document.getElementById(`btn_label_pos_${i}`);
         if (posEl) posEl.addEventListener("change", () => updatePreview(i));
+        const typeEl = document.getElementById(`action_type_${i}`);
+        if (typeEl) typeEl.addEventListener("change", () => onActionTypeChange(i));
         updatePreview(i);
       }
       /* Wire display panel color widgets */
@@ -1755,20 +1970,9 @@
     }
 
     function payload() {
-      const actions = {};
-      for (let i = 1; i <= 15; i++) {
-        actions[String(i)] = {
-          enabled:        document.getElementById(`enabled_${i}`).checked,
-          run_on_release: document.getElementById(`release_${i}`).checked,
-          command:        document.getElementById(`command_${i}`).value,
-          cwd:            document.getElementById(`cwd_${i}`).value,
-          icon:            document.getElementById(`icon_${i}`).value,
-          icon_color:      document.getElementById(`icon_color_${i}`).value,
-          icon_color_last: document.getElementById(`icon_color_picker_${i}`).dataset.last || document.getElementById(`icon_color_picker_${i}`).value.replace(/^#/, ""),
-          label:          document.getElementById(`btn_label_${i}`).value,
-          label_pos:      document.getElementById(`btn_label_pos_${i}`).value,
-        };
-      }
+      // Persist current page edits to memory before building the full payload
+      pagesData[currentPage] = collectCurrentPageActions();
+      const actions = pagesData[currentPage];
       const widgets = {
         refresh_seconds: Number(document.getElementById("widget_refresh").value),
         "16": {
@@ -1811,6 +2015,8 @@
         },
         widgets,
         actions,
+        pages:       pagesData,
+        active_page: currentPage,
       };
     }
 
@@ -1859,7 +2065,11 @@
       const ui = config.ui || {};
       const device = config.device || {};
       const widgets = config.widgets || {};
-      const actions = config.actions || {};
+
+      // Initialize pagination state
+      pagesData   = (config.pages && config.pages.length > 0) ? config.pages : [config.actions || {}];
+      currentPage = Number(config.active_page) || 0;
+      if (currentPage >= pagesData.length) currentPage = 0;
 
       // Connection address
       const addrEl = document.getElementById("conn-addr");
@@ -1873,31 +2083,11 @@
       const widgetRefreshEl = document.getElementById("widget_refresh");
       if (widgetRefreshEl) widgetRefreshEl.value = widgets.refresh_seconds != null ? widgets.refresh_seconds : 5;
 
-      // Button cards (keys 1-15)
-      for (let i = 1; i <= 15; i++) {
-        const a = actions[String(i)] || {};
-        const enabledEl = document.getElementById("enabled_" + i);
-        if (enabledEl) enabledEl.checked = !!a.enabled;
-        const releaseEl = document.getElementById("release_" + i);
-        if (releaseEl) releaseEl.checked = !!a.run_on_release;
-        const cmdEl = document.getElementById("command_" + i);
-        if (cmdEl) cmdEl.value = a.command || "";
-        const cwdEl = document.getElementById("cwd_" + i);
-        if (cwdEl) cwdEl.value = a.cwd || "";
-        const iconEl = document.getElementById("icon_" + i);
-        if (iconEl) iconEl.value = a.icon || "";
-        const iconColorEl = document.getElementById("icon_color_" + i);
-        if (iconColorEl) iconColorEl.value = a.icon_color || "";
-        const iconPickerEl = document.getElementById("icon_color_picker_" + i);
-        // Use icon_color_last to seed the picker when color is disabled,
-        // so toggling back on restores the previously chosen color.
-        const lastColor = a.icon_color || a.icon_color_last || "ffffff";
-        if (iconPickerEl) iconPickerEl.value = "#" + lastColor;
-        const labelEl = document.getElementById("btn_label_" + i);
-        if (labelEl) labelEl.value = a.label || "";
-        const labelPosEl = document.getElementById("btn_label_pos_" + i);
-        if (labelPosEl) labelPosEl.value = a.label_pos || "off";
-      }
+      // Button cards (active page)
+      populateButtonCards(pagesData[currentPage]);
+
+      // Update page navigation UI
+      updatePageNav();
 
       // Secondary display slots (16, 17, 18)
       ["16", "17", "18"].forEach(function(id) {

@@ -4,9 +4,11 @@ import json
 import os
 import threading
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 _BASE_DIR = Path(__file__).resolve().parent
+
+BUTTONS_PER_PAGE = 15
 
 
 def resolve_config_path() -> Path:
@@ -21,19 +23,26 @@ def resolve_config_path() -> Path:
     return Path.home() / ".config" / "streamdockd" / "config.json"
 
 
-def default_config() -> Dict[str, Any]:
+def default_page_actions() -> Dict[str, Dict[str, Any]]:
+    """Return a default set of blank button action configs for one page."""
     actions: Dict[str, Dict[str, Any]] = {}
-    for i in range(1, 16):
+    for i in range(1, BUTTONS_PER_PAGE + 1):
         actions[str(i)] = {
             "enabled": False,
+            "type": "command",
             "command": "",
             "cwd": "",
             "icon": "",
             "icon_color": "ffffff",
-            "run_on_release": False,
             "label": "",
             "label_pos": "bottom",
+            "page": 1,
         }
+    return actions
+
+
+def default_config() -> Dict[str, Any]:
+    page0 = default_page_actions()
     return {
         "ui": {"host": "127.0.0.1", "port": 17890},
         "device": {"brightness": 100, "reconnect_seconds": 2},
@@ -48,7 +57,9 @@ def default_config() -> Dict[str, Any]:
             "17": {"mode": "stats", "style": "bold", "image": "", "text": "", "label_pos": "off", "icon": "mdi:chart-box-outline", "icon_color": "ffffff"},
             "18": {"mode": "date", "style": "bold", "image": "", "text": "", "label_pos": "off", "icon": "mdi:calendar-month-outline", "icon_color": "ffffff"},
         },
-        "actions": actions,
+        "pages": [page0],
+        "active_page": 0,
+        "actions": page0,
     }
 
 
@@ -76,6 +87,13 @@ class ConfigStore:
             self.path.write_text(json.dumps(data, indent=2), encoding="utf-8")
             return data
 
+    def _merge_page_actions(self, template: Dict[str, Any], incoming: Dict[str, Any]) -> Dict[str, Any]:
+        """Merge incoming page actions over a template, ensuring all slots are present."""
+        page: Dict[str, Any] = {str(i): dict(template[str(i)]) for i in range(1, BUTTONS_PER_PAGE + 1)}
+        for key in page:
+            page[key].update(incoming.get(key, {}))
+        return page
+
     def _merge_defaults(self, data: Dict[str, Any]) -> Dict[str, Any]:
         merged = default_config()
         merged["ui"].update(data.get("ui", {}))
@@ -84,9 +102,26 @@ class ConfigStore:
         merged["widgets"].update(data.get("widgets", {}))
         for slot in ("16", "17", "18"):
             merged["widgets"][slot].update(data.get("widgets", {}).get(slot, {}))
-        input_actions = data.get("actions", {})
-        for key, action in merged["actions"].items():
-            action.update(input_actions.get(key, {}))
+
+        template_page = default_page_actions()
+        input_pages: Any = data.get("pages", None)
+        active_page = int(data.get("active_page", 0))
+
+        if isinstance(input_pages, list) and len(input_pages) > 0:
+            merged_pages: List[Dict[str, Any]] = [
+                self._merge_page_actions(template_page, p if isinstance(p, dict) else {})
+                for p in input_pages
+            ]
+            active_page = max(0, min(len(merged_pages) - 1, active_page))
+        else:
+            # Legacy config: migrate flat "actions" dict → pages[0]
+            page0 = self._merge_page_actions(template_page, data.get("actions", {}))
+            merged_pages = [page0]
+            active_page = 0
+
+        merged["pages"] = merged_pages
+        merged["active_page"] = active_page
+        merged["actions"] = merged_pages[active_page]
         return merged
 
     def get(self) -> Dict[str, Any]:

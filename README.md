@@ -10,6 +10,7 @@ Built on top of the official [MiraboxSpace StreamDock Python SDK](https://github
 
 - Assigns shell commands to physical buttons (press or release)
 - Sets per-button icons from local image files or [Iconify](https://iconify.design/) icon names (e.g. `mdi:github`)
+- **Multiple button pages** — add as many pages of 15 button configs as needed and navigate between them with prev/next/go-to shortcuts or dedicated hardware buttons
 - Controls touchscreen/secondary display: clock, system stats, or a custom image
 - Configurable brightness and auto-reconnect on device disconnect
 - Web UI at `http://127.0.0.1:17890` — no extra dependencies, no Electron
@@ -87,18 +88,37 @@ The web UI at `http://127.0.0.1:17890` is the intended way to manage it. The JSO
     "17": { "mode": "stats", "icon": "mdi:chart-box-outline", "icon_color": "ffffff" },
     "18": { "mode": "date", "icon": "mdi:calendar-month-outline", "icon_color": "ffffff" }
   },
-  "actions": {
-    "1": {
-      "enabled": true,
-      "command": "firefox",
-      "cwd": "",
-      "icon": "mdi:firefox",
-      "icon_color": "ff9500",
-      "run_on_release": false
+  "pages": [
+    {
+      "1": { "enabled": true, "type": "command", "command": "firefox", "icon": "mdi:firefox", "icon_color": "ff9500" },
+      "2": { "enabled": true, "type": "page_next", "icon": "mdi:chevron-right", "label": "Next page" }
     }
-  }
+  ],
+  "active_page": 0,
+  "actions": { ... }
 }
 ```
+
+> **Backward compatibility** — existing configs with a flat `actions` dict (no `pages`) are automatically migrated to a single-page setup on first load; no manual changes required.
+
+### Button action types
+
+Each button has a `type` field that controls what happens when it is pressed:
+
+| `type` | Behaviour |
+|--------|-----------|
+| `command` (default) | Run the shell `command` in the optional `cwd` directory |
+| `page_next` | Switch to the next page (wraps around) |
+| `page_prev` | Switch to the previous page (wraps around) |
+| `page_goto` | Jump to the 1-indexed page number in the `page` field |
+
+Navigation buttons still display their `icon` / `label` on the device as normal.
+
+### Pages
+
+- The web UI shows a **Pages** bar above the button grid with **← PREV**, **NEXT →**, **+ ADD PAGE**, **DEL PAGE**, and a **Go to** number field.
+- Clicking **SAVE CONFIG** persists all pages and the currently active page to disk and applies the active page's icons to the device immediately.
+- Switching pages in the UI is client-side only until you save — hit **SAVE CONFIG** to push the change to the device.
 
 ### Icon values
 

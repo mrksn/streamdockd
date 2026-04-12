@@ -1,0 +1,1928 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>StreamDock Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --surface: #111419;
+      --surface-2: #181c23;
+      --border: #1e242e;
+      --border-bright: #2a3340;
+      --ink: #c8d4e0;
+      --ink-dim: #5a6a7a;
+      --ink-faint: #2a3848;
+      --placeholder: #303e4e;
+      --cyan: #00e5c8;
+      --cyan-dim: #00b09b;
+      --cyan-glow: rgba(0, 229, 200, 0.12);
+      --cyan-glow-lg: rgba(0, 229, 200, 0.18);
+      --red: #ff4466;
+      --green: #39d98a;
+      --mono: "Share Tech Mono", "Fira Mono", monospace;
+      --sans: "Barlow", system-ui, sans-serif;
+      --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+      --t-fast: 120ms;
+      --t-mid: 200ms;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--sans);
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      /* subtle horizontal scanlines for hardware-terminal feel */
+      background-image: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 3px,
+        rgba(0,229,200,0.009) 3px,
+        rgba(0,229,200,0.009) 4px
+      );
+    }
+
+    /* ── Page-load fade-in ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .wrap > * {
+      animation: fadeUp 0.35s var(--ease-out) both;
+    }
+    .wrap > *:nth-child(1) { animation-delay: 0.05s; }
+    .wrap > *:nth-child(2) { animation-delay: 0.10s; }
+    .wrap > *:nth-child(3) { animation-delay: 0.15s; }
+    .wrap > *:nth-child(4) { animation-delay: 0.18s; }
+    .wrap > *:nth-child(5) { animation-delay: 0.21s; }
+    .wrap > *:nth-child(6) { animation-delay: 0.24s; }
+    @media (prefers-reduced-motion: reduce) {
+      .wrap > * { animation: none; }
+      .conn-dot  { animation: none; }
+    }
+
+    /* ── Header ── */
+    .site-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 24px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10,12,16,0.96);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .logo {
+      font-family: var(--mono);
+      font-size: 14px;
+      color: var(--cyan);
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logo-bracket { color: var(--ink-faint); }
+    .logo-sep {
+      width: 1px;
+      height: 14px;
+      background: var(--border-bright);
+      margin: 0 4px;
+    }
+    .logo-sub {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--ink-dim);
+      letter-spacing: 2px;
+    }
+    .conn-indicator {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-dim);
+      letter-spacing: 1px;
+    }
+    .conn-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 5px var(--green);
+      animation: blink 2.4s ease-in-out infinite;
+      flex: 0 0 auto;
+    }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 1; }
+      40%           { opacity: 0.35; }
+    }
+
+    /* ── Layout ── */
+    .wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 20px 20px 80px;
+    }
+
+    /* ── Section headings ── */
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      margin-top: 28px;
+    }
+    .section-head:first-child { margin-top: 4px; }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--cyan);
+      white-space: nowrap;
+    }
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(to right, var(--border-bright), var(--border));
+    }
+
+    /* ── Top row: system + key map side by side ── */
+    .top-row {
+      display: flex;
+      gap: 16px;
+      align-items: stretch;
+      margin-top: 4px;
+    }
+
+    /* ── System controls ── */
+    .sys-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      justify-content: space-between;
+    }
+    .sys-card-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .sys-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .sys-field-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--ink-dim);
+      text-transform: uppercase;
+    }
+    .sys-field input {
+      font-family: var(--mono);
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--cyan);
+      background: var(--surface-2);
+      border: 1px solid var(--border-bright);
+      border-radius: 6px;
+      padding: 5px 8px;
+      width: 80px;
+      outline: none;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+      -moz-appearance: textfield;
+    }
+    .sys-field input::-webkit-inner-spin-button,
+    .sys-field input::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .sys-field input:hover { border-color: var(--border-bright); }
+    .sys-field input:focus {
+      border-color: var(--cyan-dim);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+    .sys-field input:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+
+    /* ── Deck maps ── */
+    .deck-section {
+      display: flex;
+      flex: 1;
+      min-width: 0;
+    }
+    .deck-map {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .deck-map-title {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .deck-row,
+    .deck-row-icons {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+    .deck-row:last-child,
+    .deck-row-icons:last-child { margin-bottom: 0; }
+
+    .deck-cell {
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--border-bright);
+      background: var(--surface-2);
+      color: var(--ink-dim);
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+      padding: 0;
+      line-height: 1;
+    }
+    .deck-cell:hover:not(.active) {
+      border-color: var(--cyan-dim);
+      color: var(--cyan);
+      background: rgba(0,229,200,0.06);
+    }
+    .deck-cell:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 1px;
+    }
+    .deck-cell.active {
+      border-color: var(--cyan);
+      background: rgba(0,229,200,0.1);
+      color: var(--cyan);
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .deck-cell-icon {
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      border: 1px solid var(--border-bright);
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+      cursor: pointer;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    }
+    .deck-cell-icon:hover:not(.active) {
+      border-color: var(--border-bright);
+      box-shadow: 0 0 0 1px var(--border-bright);
+    }
+    .deck-cell-icon:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 1px;
+    }
+    .deck-cell-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .deck-cell-icon.active {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px var(--cyan), 0 0 10px var(--cyan-glow);
+    }
+    .deck-row-icons-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 6px;
+    }
+    .deck-row-icons-wrap:last-child { margin-bottom: 0; }
+    .deck-row-icons-wrap .deck-row-icons { margin-bottom: 0; }
+    .deck-disp-sep {
+      width: 1px;
+      height: 44px;
+      background: var(--border-bright);
+      margin: 0 8px;
+      flex-shrink: 0;
+    }
+    .deck-cell-disp {
+      width: 44px; height: 44px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,229,200,0.25);
+      background: linear-gradient(160deg, rgba(0,229,200,0.06) 0%, var(--surface-2) 60%);
+      color: var(--cyan-dim);
+      font-family: var(--mono);
+      font-size: 9px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: border-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast);
+      padding: 0;
+      line-height: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      letter-spacing: 0.5px;
+    }
+    .deck-cell-disp:hover {
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+    .deck-cell-disp:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 1px;
+    }
+    .deck-cell-disp .disp-label {
+      font-size: 8px;
+      color: var(--ink-dim);
+      letter-spacing: 0.5px;
+    }
+
+    /* ── Button matrix ── */
+    .btn-matrix {
+      display: grid;
+      gap: 8px;
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .btn-row.with-display {
+      grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(210px, 1.1fr);
+      align-items: stretch;
+    }
+
+    /* ── Button card ── */
+    .btn-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+      height: 100%;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    }
+    .btn-card:not(.active):hover {
+      border-color: var(--border-bright);
+    }
+    .btn-card.active {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 1px var(--cyan), 0 0 18px var(--cyan-glow-lg);
+    }
+
+    .btn-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .btn-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--cyan);
+      letter-spacing: 1px;
+    }
+    .btn-coord {
+      font-family: var(--mono);
+      font-size: 9px;
+      color: var(--ink-faint);
+      letter-spacing: 0.5px;
+    }
+
+    .btn-preview-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .btn-preview-frame {
+      position: relative;
+      width: 46px; height: 46px;
+      flex: 0 0 auto;
+    }
+    .btn-preview {
+      width: 46px; height: 46px;
+      border-radius: 7px;
+      border: 1px solid var(--border-bright);
+      background: #0d0f14;
+      object-fit: cover;
+      display: block;
+    }
+    .btn-preview-label {
+      position: absolute;
+      left: 0; right: 0;
+      font-family: var(--mono);
+      font-size: 7px;
+      font-weight: bold;
+      color: #fff;
+      text-align: center;
+      padding: 1px 2px;
+      background: rgba(0,0,0,0.65);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      display: none;
+    }
+    .btn-preview-label.pos-top    { top: 0; border-radius: 6px 6px 0 0; }
+    .btn-preview-label.pos-middle { top: 50%; transform: translateY(-50%); }
+    .btn-preview-label.pos-bottom { bottom: 0; border-radius: 0 0 6px 6px; }
+    .btn-toggles {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    /* ── Toggle pill ── */
+    .toggle-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .toggle-pill input { display: none; }
+    .pill-track {
+      width: 28px; height: 15px;
+      border-radius: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--border-bright);
+      position: relative;
+      transition: background var(--t-fast), border-color var(--t-fast);
+      flex: 0 0 auto;
+    }
+    .pill-thumb {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--ink-faint);
+      transition: transform var(--t-fast) var(--ease-out), background var(--t-fast);
+    }
+    .toggle-pill input:checked ~ .pill-track {
+      background: rgba(0,229,200,0.18);
+      border-color: var(--cyan-dim);
+    }
+    .toggle-pill input:checked ~ .pill-track .pill-thumb {
+      transform: translateX(13px);
+      background: var(--cyan);
+    }
+    .pill-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: var(--ink-dim);
+      transition: color var(--t-fast);
+    }
+    .toggle-pill:has(input:checked) .pill-label {
+      color: var(--cyan);
+    }
+    .toggle-pill:focus-within .pill-track {
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+
+    /* ── Field group ── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field-label {
+      display: grid;
+      grid-template-columns: 24px 1fr;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1.5px;
+      color: var(--ink-dim);
+    }
+    .field-label.clr-row,
+    .field-label.txt-pos-row {
+      grid-template-columns: 24px 1fr;
+    }
+    .field-label input {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 4px 7px;
+      width: 100%;
+      outline: none;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast), color var(--t-fast);
+      min-width: 0;
+    }
+    .field-label input::placeholder { color: var(--placeholder); }
+    .field-label input:hover { border-color: var(--border-bright); }
+    .field-label input:focus {
+      border-color: var(--cyan-dim);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+      color: var(--cyan);
+    }
+    .field-label input:focus-visible {
+      outline: none;
+    }
+    .field-label select {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--ink);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 4px 7px;
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+      -webkit-appearance: none;
+      appearance: none;
+      min-width: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%235a6a7a' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 24px;
+    }
+    .field-label select:hover { border-color: var(--border-bright); }
+    .field-label select:focus {
+      border-color: var(--cyan-dim);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+    .field-label select:focus-visible { outline: none; }
+    /* ── Color picker widget ── */
+    .color-widget {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+    }
+    .color-native {
+      width: 22px; height: 22px;
+      border-radius: 5px;
+      border: 1px solid var(--border-bright);
+      padding: 1px;
+      background: var(--surface-2);
+      cursor: pointer;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+      -webkit-appearance: none;
+      appearance: none;
+      overflow: hidden;
+    }
+    .color-native::-webkit-color-swatch-wrapper { padding: 0; }
+    .color-native::-webkit-color-swatch {
+      border: none;
+      border-radius: 3px;
+    }
+    .color-native::-moz-color-swatch {
+      border: none;
+      border-radius: 3px;
+    }
+    .color-native:hover {
+      border-color: var(--cyan-dim);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+    .color-native:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 2px;
+    }
+    .color-hex {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      pointer-events: none;
+    }
+    .color-off-btn {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 1px;
+      background: var(--surface-2);
+      border-radius: 4px;
+      padding: 0;
+      cursor: pointer;
+      flex: 0 0 auto;
+      line-height: 1;
+      white-space: nowrap;
+      /* fixed size so "on"/"off" don't shift layout */
+      width: 26px;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      /* no border by default — only show on hover/state */
+      border: 1px solid transparent;
+      transition: color var(--t-fast), border-color var(--t-fast), box-shadow var(--t-fast);
+      /* ON state colour */
+      color: var(--cyan);
+    }
+    .color-off-btn:hover {
+      border-color: var(--cyan-dim);
+      box-shadow: 0 0 0 2px var(--cyan-glow);
+    }
+    /* OFF state */
+    .color-off-btn.is-off {
+      color: var(--red);
+    }
+    .color-off-btn.is-off:hover {
+      border-color: var(--red);
+      box-shadow: 0 0 0 2px rgba(255,68,102,0.18);
+    }
+    .color-native.color-disabled { opacity: 0.25; pointer-events: none; }
+
+    /* ── Display widget panel ── */
+    .widget-panel {
+      border: 1px solid rgba(0,229,200,0.30);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: linear-gradient(160deg, rgba(0,229,200,0.07) 0%, var(--surface) 70%);
+      min-width: 0;
+      overflow: hidden;
+      height: 100%;
+    }
+    .widget-panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .widget-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* ── Save bar ── */
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      background: rgba(10,12,16,0.97);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      padding: 11px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 100;
+    }
+    .save-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      background: var(--cyan);
+      color: #04110e;
+      border: none;
+      border-radius: 7px;
+      padding: 9px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
+      line-height: 1;
+    }
+    .save-btn:hover {
+      background: #1ffce2;
+      box-shadow: 0 0 20px rgba(0,229,200,0.35);
+    }
+    .save-btn:active { transform: scale(0.97); }
+    .save-btn:focus-visible {
+      outline: 2px solid var(--cyan);
+      outline-offset: 3px;
+    }
+    .status-msg {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-dim);
+      letter-spacing: 1px;
+      min-width: 140px;
+      transition: color var(--t-mid), opacity var(--t-mid);
+    }
+    .status-msg.ok  { color: var(--green); }
+    .status-msg.err { color: var(--red); }
+
+    /* ── Responsive ── */
+    @media (max-width: 1200px) {
+      .btn-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .btn-row.with-display { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .btn-row.with-display .widget-panel { grid-column: 1 / -1; }
+    }
+    @media (max-width: 700px) {
+      .btn-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .top-row { flex-direction: column; }
+      .sys-card { flex-direction: row; flex-wrap: wrap; gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="logo">
+      <span class="logo-bracket">[</span>STREAMDOCK<span class="logo-bracket">]</span>
+      <span class="logo-sep"></span>
+      <span class="logo-sub">CONTROL PANEL</span>
+    </div>
+    <div class="conn-indicator">
+      <div class="conn-dot"></div>
+      <span id="conn-addr">127.0.0.1:17890</span>
+    </div>
+  </header>
+
+  <div class="wrap">
+
+    <div class="top-row">
+      <div class="sys-card">
+        <span class="sys-card-label">System</span>
+        <div class="sys-field">
+          <span class="sys-field-label">Brightness %</span>
+          <input id="brightness" type="number" min="1" max="100" value="100" aria-label="Brightness percent">
+        </div>
+        <div class="sys-field">
+          <span class="sys-field-label">Reconnect (s)</span>
+          <input id="reconnect_seconds" type="number" min="1" max="10" value="2" aria-label="Reconnect interval seconds">
+        </div>
+        <div class="sys-field">
+          <span class="sys-field-label">Widget Refresh (s)</span>
+          <input id="widget_refresh" type="number" min="1" max="60" value="5" aria-label="Widget refresh interval seconds">
+        </div>
+      </div>
+      <div class="deck-section">
+      <div class="deck-map" aria-label="Icon preview grid">
+        <div class="deck-map-title">Icon previews</div>
+        <div class="deck-row-icons-wrap">
+          <div class='deck-row-icons'><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_1" onclick="focusButtonCard(1)"><img id="deck_preview_1" alt="key 1"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_2" onclick="focusButtonCard(2)"><img id="deck_preview_2" alt="key 2"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_3" onclick="focusButtonCard(3)"><img id="deck_preview_3" alt="key 3"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_4" onclick="focusButtonCard(4)"><img id="deck_preview_4" alt="key 4"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_5" onclick="focusButtonCard(5)"><img id="deck_preview_5" alt="key 5"></button></div>
+          <div class="deck-disp-sep"></div>
+          <button type="button" class="deck-cell-disp" onclick="focusWidgetPanel(16)" title="Display slot 16"><span>D16</span><span class="disp-label">DISP</span></button>
+        </div>
+        <div class="deck-row-icons-wrap">
+          <div class='deck-row-icons'><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_6" onclick="focusButtonCard(6)"><img id="deck_preview_6" alt="key 6"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_7" onclick="focusButtonCard(7)"><img id="deck_preview_7" alt="key 7"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_8" onclick="focusButtonCard(8)"><img id="deck_preview_8" alt="key 8"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_9" onclick="focusButtonCard(9)"><img id="deck_preview_9" alt="key 9"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_10" onclick="focusButtonCard(10)"><img id="deck_preview_10" alt="key 10"></button></div>
+          <div class="deck-disp-sep"></div>
+          <button type="button" class="deck-cell-disp" onclick="focusWidgetPanel(17)" title="Display slot 17"><span>D17</span><span class="disp-label">DISP</span></button>
+        </div>
+        <div class="deck-row-icons-wrap">
+          <div class='deck-row-icons'><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_11" onclick="focusButtonCard(11)"><img id="deck_preview_11" alt="key 11"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_12" onclick="focusButtonCard(12)"><img id="deck_preview_12" alt="key 12"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_13" onclick="focusButtonCard(13)"><img id="deck_preview_13" alt="key 13"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_14" onclick="focusButtonCard(14)"><img id="deck_preview_14" alt="key 14"></button><button type="button" class="deck-cell deck-cell-icon" id="deck_icon_15" onclick="focusButtonCard(15)"><img id="deck_preview_15" alt="key 15"></button></div>
+          <div class="deck-disp-sep"></div>
+          <button type="button" class="deck-cell-disp" onclick="focusWidgetPanel(18)" title="Display slot 18"><span>D18</span><span class="disp-label">DISP</span></button>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div class="section-head">
+      <span class="section-label">Button Actions</span>
+      <div class="section-line"></div>
+    </div>
+    <div class="btn-matrix" role="list" aria-label="Button configuration cards">
+      <div class='btn-row with-display'>
+            <div class="btn-card" id="card_1" data-key="1">
+              <div class="btn-head">
+                <span class="btn-num">B01</span>
+                <span class="btn-coord">R1·C1</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_1" alt="key 1"><span class="btn-preview-label" id="preview_label_1"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_1" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_1" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_1" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_1" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_1" value="/home/mrksnktr/dev/streamdock/streamdock-repo/img/button_test.jpg" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_1" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_1" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_1" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_1">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_2" data-key="2">
+              <div class="btn-head">
+                <span class="btn-num">B02</span>
+                <span class="btn-coord">R1·C2</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_2" alt="key 2"><span class="btn-preview-label" id="preview_label_2"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_2" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_2" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_2" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_2" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_2" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_2" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_2" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_2" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_2">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_3" data-key="3">
+              <div class="btn-head">
+                <span class="btn-num">B03</span>
+                <span class="btn-coord">R1·C3</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_3" alt="key 3"><span class="btn-preview-label" id="preview_label_3"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_3" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_3" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_3" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_3" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_3" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_3" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_3" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_3" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_3">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_4" data-key="4">
+              <div class="btn-head">
+                <span class="btn-num">B04</span>
+                <span class="btn-coord">R1·C4</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_4" alt="key 4"><span class="btn-preview-label" id="preview_label_4"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_4" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_4" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_4" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_4" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_4" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_4" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_4" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_4" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_4">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_5" data-key="5">
+              <div class="btn-head">
+                <span class="btn-num">B05</span>
+                <span class="btn-coord">R1·C5</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_5" alt="key 5"><span class="btn-preview-label" id="preview_label_5"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_5" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_5" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_5" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_5" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_5" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_5" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_5" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_5" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_5">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+        <div class="widget-panel display-inline">
+          <div class="widget-panel-head">
+            <span class="btn-num">D16</span>
+            <span class="btn-coord">After R1·C5</span>
+          </div>
+          <div class="widget-fields">
+            <label class="field-label">MODE
+              <select id="w_mode_16">
+                <option value="off" >off</option>
+                <option value="clock" selected>clock</option>
+                <option value="seconds" >seconds</option>
+                <option value="date" >date</option>
+                <option value="stats" >stats</option>
+                <option value="cpu_ram" >cpu+ram</option>
+                <option value="cpu" >cpu load</option>
+                <option value="memory" >memory</option>
+                <option value="uptime" >uptime</option>
+                <option value="hostname" >hostname</option>
+                <option value="icon" >icon</option>
+                <option value="image" >image</option>
+                <option value="text" >text</option>
+              </select>
+            </label>
+            <label class="field-label">STYLE
+              <select id="w_style_16">
+                <option value="minimal" >minimal</option>
+                <option value="bold" selected>bold</option>
+                <option value="neon" >neon</option>
+                <option value="amber" >amber</option>
+                <option value="lcd" >retro lcd</option>
+                <option value="mono" >mono</option>
+              </select>
+            </label>
+            <label class="field-label">IMG<input id="w_image_16" value="" placeholder="path/to/image.png"></label>
+            <label class="field-label">ICO<input id="w_icon_16" value="mdi:clock-outline" placeholder="lucide:play"></label>
+            <label class="field-label clr-row">
+              CLR
+              <div class="color-widget">
+                <input type="color" id="w_icon_color_picker_16" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                <input type="text" id="w_icon_color_16" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+              </div>
+            </label>
+            <label class="field-label">TXT<input id="w_text_16" value="" placeholder="custom text"></label>
+            <label class="field-label txt-pos-row">POS
+              <select id="w_label_pos_16">
+                <option value="off" selected>off</option>
+                <option value="top">top</option>
+                <option value="middle">middle</option>
+                <option value="bottom">bottom</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        </div><div class='btn-row with-display'>
+            <div class="btn-card" id="card_6" data-key="6">
+              <div class="btn-head">
+                <span class="btn-num">B06</span>
+                <span class="btn-coord">R2·C1</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_6" alt="key 6"><span class="btn-preview-label" id="preview_label_6"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_6" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_6" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_6" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_6" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_6" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_6" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_6" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_6" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_6">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_7" data-key="7">
+              <div class="btn-head">
+                <span class="btn-num">B07</span>
+                <span class="btn-coord">R2·C2</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_7" alt="key 7"><span class="btn-preview-label" id="preview_label_7"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_7" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_7" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_7" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_7" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_7" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_7" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_7" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_7" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_7">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_8" data-key="8">
+              <div class="btn-head">
+                <span class="btn-num">B08</span>
+                <span class="btn-coord">R2·C3</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_8" alt="key 8"><span class="btn-preview-label" id="preview_label_8"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_8" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_8" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_8" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_8" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_8" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_8" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_8" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_8" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_8">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_9" data-key="9">
+              <div class="btn-head">
+                <span class="btn-num">B09</span>
+                <span class="btn-coord">R2·C4</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_9" alt="key 9"><span class="btn-preview-label" id="preview_label_9"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_9" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_9" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_9" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_9" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_9" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_9" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_9" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_9" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_9">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_10" data-key="10">
+              <div class="btn-head">
+                <span class="btn-num">B10</span>
+                <span class="btn-coord">R2·C5</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_10" alt="key 10"><span class="btn-preview-label" id="preview_label_10"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_10" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_10" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_10" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_10" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_10" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_10" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_10" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_10" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_10">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+        <div class="widget-panel display-inline">
+          <div class="widget-panel-head">
+            <span class="btn-num">D17</span>
+            <span class="btn-coord">After R2·C5</span>
+          </div>
+          <div class="widget-fields">
+            <label class="field-label">MODE
+              <select id="w_mode_17">
+                <option value="off" >off</option>
+                <option value="clock" >clock</option>
+                <option value="seconds" >seconds</option>
+                <option value="date" >date</option>
+                <option value="stats" selected>stats</option>
+                <option value="cpu_ram" >cpu+ram</option>
+                <option value="cpu" >cpu load</option>
+                <option value="memory" >memory</option>
+                <option value="uptime" >uptime</option>
+                <option value="hostname" >hostname</option>
+                <option value="icon" >icon</option>
+                <option value="image" >image</option>
+                <option value="text" >text</option>
+              </select>
+            </label>
+            <label class="field-label">STYLE
+              <select id="w_style_17">
+                <option value="minimal" >minimal</option>
+                <option value="bold" selected>bold</option>
+                <option value="neon" >neon</option>
+                <option value="amber" >amber</option>
+                <option value="lcd" >retro lcd</option>
+                <option value="mono" >mono</option>
+              </select>
+            </label>
+            <label class="field-label">IMG<input id="w_image_17" value="" placeholder="path/to/image.png"></label>
+            <label class="field-label">ICO<input id="w_icon_17" value="mdi:chart-box-outline" placeholder="tabler:chart-bar"></label>
+            <label class="field-label clr-row">
+              CLR
+              <div class="color-widget">
+                <input type="color" id="w_icon_color_picker_17" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                <input type="text" id="w_icon_color_17" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+              </div>
+            </label>
+            <label class="field-label">TXT<input id="w_text_17" value="" placeholder="custom text"></label>
+            <label class="field-label txt-pos-row">POS
+              <select id="w_label_pos_17">
+                <option value="off" selected>off</option>
+                <option value="top">top</option>
+                <option value="middle">middle</option>
+                <option value="bottom">bottom</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        </div><div class='btn-row with-display'>
+            <div class="btn-card" id="card_11" data-key="11">
+              <div class="btn-head">
+                <span class="btn-num">B11</span>
+                <span class="btn-coord">R3·C1</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_11" alt="key 11"><span class="btn-preview-label" id="preview_label_11"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_11" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_11" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_11" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_11" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_11" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_11" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_11" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_11" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_11">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_12" data-key="12">
+              <div class="btn-head">
+                <span class="btn-num">B12</span>
+                <span class="btn-coord">R3·C2</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_12" alt="key 12"><span class="btn-preview-label" id="preview_label_12"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_12" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_12" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_12" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_12" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_12" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_12" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_12" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_12" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_12">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_13" data-key="13">
+              <div class="btn-head">
+                <span class="btn-num">B13</span>
+                <span class="btn-coord">R3·C3</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_13" alt="key 13"><span class="btn-preview-label" id="preview_label_13"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_13" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_13" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_13" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_13" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_13" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_13" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_13" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_13" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_13">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_14" data-key="14">
+              <div class="btn-head">
+                <span class="btn-num">B14</span>
+                <span class="btn-coord">R3·C4</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_14" alt="key 14"><span class="btn-preview-label" id="preview_label_14"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_14" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_14" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_14" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_14" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_14" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_14" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_14" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_14" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_14">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div class="btn-card" id="card_15" data-key="15">
+              <div class="btn-head">
+                <span class="btn-num">B15</span>
+                <span class="btn-coord">R3·C5</span>
+              </div>
+              <div class="btn-preview-wrap">
+                <div class="btn-preview-frame"><img class="btn-preview" id="preview_15" alt="key 15"><span class="btn-preview-label" id="preview_label_15"></span></div>
+                <div class="btn-toggles">
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="enabled_15" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">ON</span>
+                  </label>
+                  <label class="toggle-pill">
+                    <input type="checkbox" id="release_15" >
+                    <span class="pill-track"><span class="pill-thumb"></span></span>
+                    <span class="pill-label">↑REL</span>
+                  </label>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">CMD<input id="command_15" value="" placeholder="shell command"></label>
+                <label class="field-label">CWD<input id="cwd_15" value="" placeholder="working dir"></label>
+                <label class="field-label">ICO<input id="icon_15" value="" placeholder="mdi:name or /path"></label>
+                <label class="field-label clr-row">
+                  CLR
+                  <div class="color-widget">
+                    <input type="color" id="icon_color_picker_15" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                    <input type="text" id="icon_color_15" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+                  </div>
+                </label>
+                <label class="field-label">TXT<input id="btn_label_15" value="" placeholder="button label"></label>
+                <label class="field-label txt-pos-row">POS
+                  <select id="btn_label_pos_15">
+                    <option value="off" selected>off</option>
+                    <option value="top">top</option>
+                    <option value="middle">middle</option>
+                    <option value="bottom">bottom</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+        <div class="widget-panel display-inline">
+          <div class="widget-panel-head">
+            <span class="btn-num">D18</span>
+            <span class="btn-coord">After R3·C5</span>
+          </div>
+          <div class="widget-fields">
+            <label class="field-label">MODE
+              <select id="w_mode_18">
+                <option value="off" >off</option>
+                <option value="clock" >clock</option>
+                <option value="seconds" >seconds</option>
+                <option value="date" selected>date</option>
+                <option value="stats" >stats</option>
+                <option value="cpu_ram" >cpu+ram</option>
+                <option value="cpu" >cpu load</option>
+                <option value="memory" >memory</option>
+                <option value="uptime" >uptime</option>
+                <option value="hostname" >hostname</option>
+                <option value="icon" >icon</option>
+                <option value="image" >image</option>
+                <option value="text" >text</option>
+              </select>
+            </label>
+            <label class="field-label">STYLE
+              <select id="w_style_18">
+                <option value="minimal" >minimal</option>
+                <option value="bold" selected>bold</option>
+                <option value="neon" >neon</option>
+                <option value="amber" >amber</option>
+                <option value="lcd" >retro lcd</option>
+                <option value="mono" >mono</option>
+              </select>
+            </label>
+            <label class="field-label">IMG<input id="w_image_18" value="" placeholder="path/to/image.png"></label>
+            <label class="field-label">ICO<input id="w_icon_18" value="mdi:calendar-month-outline" placeholder="ph:calendar"></label>
+            <label class="field-label clr-row">
+              CLR
+              <div class="color-widget">
+                <input type="color" id="w_icon_color_picker_18" class="color-native" value="#ffffff" aria-label="Pick icon color">
+                <input type="text" id="w_icon_color_18" class="color-hex" value="ffffff" placeholder="off" maxlength="6" aria-label="Hex color or leave empty to disable"><button type="button" class="color-off-btn" tabindex="-1" title="Disable color">off</button>
+              </div>
+            </label>
+            <label class="field-label">TXT<input id="w_text_18" value="" placeholder="custom text"></label>
+            <label class="field-label txt-pos-row">POS
+              <select id="w_label_pos_18">
+                <option value="off" selected>off</option>
+                <option value="top">top</option>
+                <option value="middle">middle</option>
+                <option value="bottom">bottom</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        </div>
+    </div>
+
+  </div>
+
+  <div class="save-bar" role="toolbar">
+    <button class="save-btn" onclick="save()" aria-label="Save configuration to device">SAVE CONFIG</button>
+    <span class="status-msg" id="status" role="status" aria-live="polite"></span>
+  </div>
+
+  <script>
+    function previewUrl(i) {
+      const icon  = document.getElementById(`icon_${i}`).value || "";
+      const rawColor = (document.getElementById(`icon_color_${i}`).value || "").trim();
+      // Empty or invalid hex = no color override (pass empty, server uses "ffffff" default)
+      const color = /^[0-9a-fA-F]{6}$/.test(rawColor) ? rawColor : "ffffff";
+      const q = new URLSearchParams({ icon, color, size: "84" });
+      return `/api/preview?${q.toString()}`;
+    }
+
+    function updatePreview(i) {
+      const url = previewUrl(i);
+      document.getElementById(`preview_${i}`).src = url;
+      const mapImg = document.getElementById(`deck_preview_${i}`);
+      if (mapImg) mapImg.src = url;
+      // Update label overlay
+      const labelEl   = document.getElementById(`preview_label_${i}`);
+      const labelText = (document.getElementById(`btn_label_${i}`) || {}).value || "";
+      const labelPos  = (document.getElementById(`btn_label_pos_${i}`) || {}).value || "off";
+      if (labelEl) {
+        labelEl.textContent = labelText;
+        labelEl.className = "btn-preview-label";
+        if (labelText && labelPos !== "off") {
+          labelEl.classList.add(`pos-${labelPos}`);
+          labelEl.style.display = "block";
+          const rawColor = (document.getElementById(`icon_color_${i}`) || {}).value || "";
+          labelEl.style.color = /^[0-9a-fA-F]{6}$/.test(rawColor.trim()) ? "#" + rawColor.trim() : "#ffffff";
+        } else {
+          labelEl.style.display = "none";
+        }
+      }
+    }
+
+    /* Keep native picker ↔ hex text in sync. Empty hex = color disabled. */
+    function wireColorWidget(pickerId, hexId, onChangeCallback) {
+      const picker = document.getElementById(pickerId);
+      const hex    = document.getElementById(hexId);
+      if (!picker || !hex) return;
+      const offBtn = hex.parentElement && hex.parentElement.querySelector(".color-off-btn");
+
+      // Remember the last valid color so toggling off→on restores it
+      function rememberColor(v) {
+        if (/^[0-9a-fA-F]{6}$/.test(v)) picker.dataset.last = v;
+      }
+
+      function applyDisabledState() {
+        const disabled = hex.value.trim() === "";
+        picker.classList.toggle("color-disabled", disabled);
+        if (offBtn) {
+          offBtn.textContent = disabled ? "off" : "on";
+          offBtn.classList.toggle("is-off", disabled);
+        }
+      }
+
+      // Seed last-known color from current hex value on init
+      rememberColor(hex.value.trim());
+
+      // picker → hex text
+      picker.addEventListener("input", () => {
+        const v = picker.value.replace(/^#/, "");
+        hex.value = v;
+        rememberColor(v);
+        applyDisabledState();
+        if (onChangeCallback) onChangeCallback();
+      });
+      // hex text → picker (only when valid 6-char hex)
+      hex.addEventListener("input", () => {
+        const v = hex.value.trim().replace(/^#/, "");
+        if (/^[0-9a-fA-F]{6}$/.test(v)) { picker.value = "#" + v; rememberColor(v); }
+        applyDisabledState();
+        if (onChangeCallback) onChangeCallback();
+      });
+      // off/on button — toggle; restore last known color when re-enabling
+      if (offBtn) {
+        offBtn.addEventListener("click", () => {
+          if (hex.value.trim() === "") {
+            const restore = picker.dataset.last || picker.value.replace(/^#/, "");
+            hex.value = restore;
+            picker.value = "#" + restore;
+          } else {
+            rememberColor(hex.value.trim());
+            hex.value = "";
+          }
+          applyDisabledState();
+          if (onChangeCallback) onChangeCallback();
+        });
+      }
+      applyDisabledState();
+    }
+
+    function initPreviews() {
+      for (let i = 1; i <= 15; i++) {
+        const iconEl = document.getElementById(`icon_${i}`);
+        const cmdEl  = document.getElementById(`command_${i}`);
+        const cwdEl  = document.getElementById(`cwd_${i}`);
+        iconEl.addEventListener("input", () => updatePreview(i));
+        iconEl.addEventListener("focus", () => setActiveButton(i));
+        cmdEl.addEventListener("focus",  () => setActiveButton(i));
+        cwdEl.addEventListener("focus",  () => setActiveButton(i));
+        wireColorWidget(`icon_color_picker_${i}`, `icon_color_${i}`, () => updatePreview(i));
+        const lblEl = document.getElementById(`btn_label_${i}`);
+        if (lblEl) lblEl.addEventListener("input", () => updatePreview(i));
+        const posEl = document.getElementById(`btn_label_pos_${i}`);
+        if (posEl) posEl.addEventListener("change", () => updatePreview(i));
+        updatePreview(i);
+      }
+      /* Wire display panel color widgets */
+      ["16","17","18"].forEach(id => {
+        wireColorWidget(`w_icon_color_picker_${id}`, `w_icon_color_${id}`, null);
+      });
+      setActiveButton(1);
+    }
+
+    function setActiveButton(i) {
+      for (let k = 1; k <= 15; k++) {
+        const active = k === i;
+        document.getElementById(`card_${k}`).classList.toggle("active", active);
+        const iconCell = document.getElementById(`deck_icon_${k}`);
+        if (iconCell) iconCell.classList.toggle("active", active);
+      }
+    }
+
+    function focusButtonCard(i) {
+      setActiveButton(i);
+      const card = document.getElementById(`card_${i}`);
+      if (card) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      const target = document.getElementById(`command_${i}`) || document.getElementById(`icon_${i}`);
+      if (target) target.focus({ preventScroll: true });
+    }
+
+    function focusWidgetPanel(id) {
+      const panel = document.querySelector(`.widget-panel [id="w_mode_${id}"]`);
+      if (panel) {
+        panel.closest(".widget-panel").scrollIntoView({ behavior: "smooth", block: "center" });
+        panel.focus({ preventScroll: true });
+      }
+    }
+
+    function payload() {
+      const actions = {};
+      for (let i = 1; i <= 15; i++) {
+        actions[String(i)] = {
+          enabled:        document.getElementById(`enabled_${i}`).checked,
+          run_on_release: document.getElementById(`release_${i}`).checked,
+          command:        document.getElementById(`command_${i}`).value,
+          cwd:            document.getElementById(`cwd_${i}`).value,
+          icon:            document.getElementById(`icon_${i}`).value,
+          icon_color:      document.getElementById(`icon_color_${i}`).value,
+          icon_color_last: document.getElementById(`icon_color_picker_${i}`).dataset.last || document.getElementById(`icon_color_picker_${i}`).value.replace(/^#/, ""),
+          label:          document.getElementById(`btn_label_${i}`).value,
+          label_pos:      document.getElementById(`btn_label_pos_${i}`).value,
+        };
+      }
+      const widgets = {
+        refresh_seconds: Number(document.getElementById("widget_refresh").value),
+        "16": {
+          mode:       document.getElementById("w_mode_16").value,
+          style:      document.getElementById("w_style_16").value,
+          image:      document.getElementById("w_image_16").value,
+          icon:       document.getElementById("w_icon_16").value,
+          icon_color:      document.getElementById("w_icon_color_16").value,
+          icon_color_last: document.getElementById("w_icon_color_picker_16").dataset.last || document.getElementById("w_icon_color_picker_16").value.replace(/^#/, ""),
+          text:       document.getElementById("w_text_16").value,
+          label_pos:  document.getElementById("w_label_pos_16").value,
+        },
+        "17": {
+          mode:       document.getElementById("w_mode_17").value,
+          style:      document.getElementById("w_style_17").value,
+          image:      document.getElementById("w_image_17").value,
+          icon:       document.getElementById("w_icon_17").value,
+          icon_color:      document.getElementById("w_icon_color_17").value,
+          icon_color_last: document.getElementById("w_icon_color_picker_17").dataset.last || document.getElementById("w_icon_color_picker_17").value.replace(/^#/, ""),
+          text:       document.getElementById("w_text_17").value,
+          label_pos:  document.getElementById("w_label_pos_17").value,
+        },
+        "18": {
+          mode:       document.getElementById("w_mode_18").value,
+          style:      document.getElementById("w_style_18").value,
+          image:      document.getElementById("w_image_18").value,
+          icon:       document.getElementById("w_icon_18").value,
+          icon_color:      document.getElementById("w_icon_color_18").value,
+          icon_color_last: document.getElementById("w_icon_color_picker_18").dataset.last || document.getElementById("w_icon_color_picker_18").value.replace(/^#/, ""),
+          text:       document.getElementById("w_text_18").value,
+          label_pos:  document.getElementById("w_label_pos_18").value,
+        },
+      };
+      const addrParts = (document.getElementById("conn-addr").textContent || "127.0.0.1:17890").split(":");
+      return {
+        ui:     { host: addrParts[0].trim(), port: Number(addrParts[1]) || 17890 },
+        device: {
+          brightness:        Number(document.getElementById("brightness").value),
+          reconnect_seconds: Number(document.getElementById("reconnect_seconds").value),
+        },
+        widgets,
+        actions,
+      };
+    }
+
+    async function save() {
+      const btn    = document.querySelector(".save-btn");
+      const status = document.getElementById("status");
+      btn.disabled = true;
+      status.className = "status-msg";
+      status.textContent = "WRITING...";
+      try {
+        const res = await fetch("/api/config", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload()),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          status.className = "status-msg err";
+          status.textContent = `ERR: ${text}`;
+          btn.disabled = false;
+          return;
+        }
+        status.className = "status-msg ok";
+        status.textContent = "SAVED ✓";
+        initPreviews();
+        setTimeout(() => window.location.reload(), 260);
+      } catch (e) {
+        status.className = "status-msg err";
+        status.textContent = `ERR: ${e}`;
+        btn.disabled = false;
+      }
+    }
+
+    async function loadConfig() {
+      try {
+        const res = await fetch("/api/config");
+        if (!res.ok) return;
+        const config = await res.json();
+        initUI(config);
+      } catch (e) {
+        console.error("failed to load config", e);
+      }
+    }
+
+    function initUI(config) {
+      const ui = config.ui || {};
+      const device = config.device || {};
+      const widgets = config.widgets || {};
+      const actions = config.actions || {};
+
+      // Connection address
+      const addrEl = document.getElementById("conn-addr");
+      if (addrEl) addrEl.textContent = (ui.host || "127.0.0.1") + ":" + (ui.port || 17890);
+
+      // System controls
+      const brightnessEl = document.getElementById("brightness");
+      if (brightnessEl) brightnessEl.value = device.brightness != null ? device.brightness : 100;
+      const reconnectEl = document.getElementById("reconnect_seconds");
+      if (reconnectEl) reconnectEl.value = device.reconnect_seconds != null ? device.reconnect_seconds : 2;
+      const widgetRefreshEl = document.getElementById("widget_refresh");
+      if (widgetRefreshEl) widgetRefreshEl.value = widgets.refresh_seconds != null ? widgets.refresh_seconds : 5;
+
+      // Button cards (keys 1-15)
+      for (let i = 1; i <= 15; i++) {
+        const a = actions[String(i)] || {};
+        const enabledEl = document.getElementById("enabled_" + i);
+        if (enabledEl) enabledEl.checked = !!a.enabled;
+        const releaseEl = document.getElementById("release_" + i);
+        if (releaseEl) releaseEl.checked = !!a.run_on_release;
+        const cmdEl = document.getElementById("command_" + i);
+        if (cmdEl) cmdEl.value = a.command || "";
+        const cwdEl = document.getElementById("cwd_" + i);
+        if (cwdEl) cwdEl.value = a.cwd || "";
+        const iconEl = document.getElementById("icon_" + i);
+        if (iconEl) iconEl.value = a.icon || "";
+        const iconColorEl = document.getElementById("icon_color_" + i);
+        if (iconColorEl) iconColorEl.value = a.icon_color || "";
+        const iconPickerEl = document.getElementById("icon_color_picker_" + i);
+        // Use icon_color_last to seed the picker when color is disabled,
+        // so toggling back on restores the previously chosen color.
+        const lastColor = a.icon_color || a.icon_color_last || "ffffff";
+        if (iconPickerEl) iconPickerEl.value = "#" + lastColor;
+        const labelEl = document.getElementById("btn_label_" + i);
+        if (labelEl) labelEl.value = a.label || "";
+        const labelPosEl = document.getElementById("btn_label_pos_" + i);
+        if (labelPosEl) labelPosEl.value = a.label_pos || "off";
+      }
+
+      // Secondary display slots (16, 17, 18)
+      ["16", "17", "18"].forEach(function(id) {
+        const slot = widgets[id] || {};
+        const modeEl = document.getElementById("w_mode_" + id);
+        if (modeEl) modeEl.value = slot.mode || "off";
+        const styleEl = document.getElementById("w_style_" + id);
+        if (styleEl) styleEl.value = slot.style || "bold";
+        const imageEl = document.getElementById("w_image_" + id);
+        if (imageEl) imageEl.value = slot.image || "";
+        const iconEl = document.getElementById("w_icon_" + id);
+        if (iconEl) iconEl.value = slot.icon || "";
+        const iconColorEl = document.getElementById("w_icon_color_" + id);
+        if (iconColorEl) iconColorEl.value = slot.icon_color || "";
+        const iconPickerEl = document.getElementById("w_icon_color_picker_" + id);
+        const wLastColor = slot.icon_color || slot.icon_color_last || "ffffff";
+        if (iconPickerEl) iconPickerEl.value = "#" + wLastColor;
+        const textEl = document.getElementById("w_text_" + id);
+        if (textEl) textEl.value = slot.text || "";
+        const labelPosEl = document.getElementById("w_label_pos_" + id);
+        if (labelPosEl) labelPosEl.value = slot.label_pos || "off";
+      });
+    }
+
+    loadConfig().then(function() { initPreviews(); });
+  </script>
+</body>
+</html>

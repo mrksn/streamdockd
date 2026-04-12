@@ -1,0 +1,16 @@
+#!/usr/bin/python3
+# /usr/bin/streamdockd — thin launcher installed by the package
+import runpy, sys, os, tempfile
+
+sys.path.insert(0, "/usr/lib/streamdockd")
+
+# libtransport.so writes 'Temporary.jpg' relative to cwd — give it a
+# writable scratch directory inside the user's runtime dir.
+_run_dir = os.path.join(
+    os.environ.get("XDG_RUNTIME_DIR", tempfile.gettempdir()),
+    "streamdockd"
+)
+os.makedirs(_run_dir, exist_ok=True)
+os.chdir(_run_dir)
+
+runpy.run_path("/usr/lib/streamdockd/streamdockd.py", run_name="__main__")

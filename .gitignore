@@ -6,6 +6,7 @@ src/
 *.tar.gz
 
 # Python
+.venv/
 __pycache__/
 *.pyc
 *.pyo

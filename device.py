@@ -452,8 +452,12 @@ class StreamDockDaemon:
         active_page = max(0, min(len(pages) - 1, active_page))
         page_cfg = pages[active_page]
 
+        # Scene pages are stored as {actions, touchscreen, widgets} dicts.
+        # config.py expects pages[] to be flat button-key dicts ({1: {...}, ...}).
+        flat_pages = [p.get("actions", p) if isinstance(p, dict) else {} for p in pages]
+
         cfg = self.config_store.get()
-        cfg["pages"] = pages
+        cfg["pages"] = flat_pages
         cfg["active_page"] = active_page
         cfg["actions"] = page_cfg.get("actions", cfg.get("actions", {}))
         if "touchscreen" in page_cfg:

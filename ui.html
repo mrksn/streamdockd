@@ -157,6 +157,128 @@
       background: linear-gradient(to right, var(--border-bright), var(--border));
     }
 
+    /* ── Scene picker ── */
+    .scene-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 180px;
+      flex-shrink: 0;
+    }
+    .scene-card-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--cyan);
+    }
+    .scene-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      overflow-y: auto;
+      max-height: 140px;
+      flex: 1;
+    }
+    .scene-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .scene-activate-btn {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface-2);
+      color: var(--ink);
+      border: 1px solid var(--border-bright);
+      border-radius: 5px;
+      padding: 5px 8px;
+      text-align: left;
+      cursor: pointer;
+      transition: background var(--t-fast), border-color var(--t-fast), color var(--t-fast);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .scene-activate-btn:hover { background: var(--border); color: var(--cyan); border-color: var(--cyan-dim); }
+    .scene-activate-btn.active { background: var(--cyan-glow); color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 0 1px var(--cyan); font-weight: 700; }
+    .scene-active-indicator { font-family: var(--mono); font-size: 9px; color: var(--ink-dim); letter-spacing: 1px; min-height: 12px; }
+    .scene-active-indicator.has-active { color: var(--cyan); }
+    .scene-status { font-family: var(--mono); font-size: 9px; color: var(--ink-dim); min-height: 12px; letter-spacing: 1px; }
+    .scene-status.ok { color: var(--cyan); }
+    .scene-status.err { color: var(--red); }
+    .scene-del-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: none;
+      color: var(--ink-dim);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 4px 6px;
+      cursor: pointer;
+      transition: color var(--t-fast), border-color var(--t-fast), background var(--t-fast);
+      flex-shrink: 0;
+    }
+    .scene-del-btn:hover { color: var(--red); border-color: var(--red); }
+    .scene-del-btn.confirming { color: var(--red); border-color: var(--red); background: rgba(255,68,102,0.15); }
+    .scene-dup-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: none;
+      color: var(--ink-dim);
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 4px 6px;
+      cursor: pointer;
+      transition: color var(--t-fast), border-color var(--t-fast);
+      flex-shrink: 0;
+    }
+    .scene-dup-btn:hover { color: var(--cyan); border-color: var(--cyan-dim); }
+    .scene-empty-msg {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: var(--ink-dim);
+      padding: 4px 0;
+    }
+    .scene-save-row {
+      display: flex;
+      gap: 6px;
+    }
+    .scene-name-input {
+      flex: 1;
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--surface-2);
+      color: var(--ink);
+      border: 1px solid var(--border-bright);
+      border-radius: 5px;
+      padding: 5px 8px;
+      outline: none;
+      min-width: 0;
+      transition: border-color var(--t-fast), box-shadow var(--t-fast);
+    }
+    .scene-name-input:focus { border-color: var(--cyan-dim); box-shadow: 0 0 0 2px var(--cyan-glow); }
+    .scene-name-input::placeholder { color: var(--placeholder); }
+    .scene-save-btn {
+      font-family: var(--mono);
+      font-size: 10px;
+      background: none;
+      color: var(--cyan);
+      border: 1px solid var(--cyan-dim);
+      border-radius: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+      transition: background var(--t-fast);
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .scene-save-btn:hover { background: var(--cyan-glow); }
+
     /* ── Top row: system + key map side by side ── */
     .top-row {
       display: flex;
@@ -413,6 +535,20 @@
       color: var(--ink-faint);
       letter-spacing: 0.5px;
     }
+    .btn-clear-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: var(--ink-faint);
+      font-family: var(--mono);
+      font-size: 8px;
+      padding: 1px 4px;
+      cursor: pointer;
+      line-height: 1.4;
+      margin-left: auto;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .btn-clear-btn:hover { border-color: var(--red); color: var(--red); }
 
     .btn-preview-wrap {
       display: flex;
@@ -917,6 +1053,16 @@
         </div>
       </div>
     </div>
+      <div class="scene-card" aria-label="Scene picker">
+        <span class="scene-card-label">Scenes</span>
+        <span class="scene-active-indicator" id="scene-active-label"></span>
+        <span class="scene-status" id="scene-status"></span>
+        <div class="scene-list" id="scene-list"><span class="scene-empty-msg">No scenes saved</span></div>
+        <div class="scene-save-row">
+          <input type="text" id="scene-name-input" class="scene-name-input" placeholder="scene name" maxlength="64" aria-label="New scene name">
+          <button type="button" class="scene-save-btn" onclick="saveScene()" title="Save current config as scene">SAVE</button>
+        </div>
+      </div>
     </div>
 
     <div class="page-nav" role="navigation" aria-label="Button page navigation">
@@ -1808,6 +1954,47 @@
     }
 
     /* ── Inject action-type rows into each button card ── */
+    function clearButtonCard(i) {
+      const defaults = { enabled: false, type: "command", command: "", cwd: "",
+        icon: "", icon_color: "ffffff", icon_color_last: "ffffff",
+        label: "", label_pos: "off", page: 1 };
+      const enabledEl = document.getElementById("enabled_" + i);
+      if (enabledEl) enabledEl.checked = false;
+      const cmdEl = document.getElementById("command_" + i);
+      if (cmdEl) cmdEl.value = "";
+      const cwdEl = document.getElementById("cwd_" + i);
+      if (cwdEl) cwdEl.value = "";
+      const iconEl = document.getElementById("icon_" + i);
+      if (iconEl) iconEl.value = "";
+      const iconColorEl = document.getElementById("icon_color_" + i);
+      if (iconColorEl) iconColorEl.value = "ffffff";
+      const picker = document.getElementById("icon_color_picker_" + i);
+      if (picker) { picker.value = "#ffffff"; picker.dataset.last = "ffffff"; }
+      const labelEl = document.getElementById("btn_label_" + i);
+      if (labelEl) labelEl.value = "";
+      const labelPosEl = document.getElementById("btn_label_pos_" + i);
+      if (labelPosEl) labelPosEl.value = "off";
+      const typeEl = document.getElementById("action_type_" + i);
+      if (typeEl) { typeEl.value = "command"; onActionTypeChange(i); }
+      const pageNumEl = document.getElementById("action_page_" + i);
+      if (pageNumEl) pageNumEl.value = 1;
+      updatePreview(i);
+    }
+
+    (function injectClearButtons() {
+      for (let i = 1; i <= 15; i++) {
+        const head = document.querySelector(`#card_${i} .btn-head`);
+        if (!head || head.querySelector(".btn-clear-btn")) continue;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-clear-btn";
+        btn.title = "Clear button to defaults";
+        btn.textContent = "CLR";
+        btn.addEventListener("click", () => clearButtonCard(i));
+        head.appendChild(btn);
+      }
+    })();
+
     (function injectActionTypeRows() {
       for (let i = 1; i <= 15; i++) {
         const fieldGroup = document.querySelector(`#card_${i} .field-group`);
@@ -2027,10 +2214,11 @@
       status.className = "status-msg";
       status.textContent = "WRITING...";
       try {
+        const cfg = payload();
         const res = await fetch("/api/config", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload()),
+          body: JSON.stringify(cfg),
         });
         if (!res.ok) {
           const text = await res.text();
@@ -2038,6 +2226,21 @@
           status.textContent = `ERR: ${text}`;
           btn.disabled = false;
           return;
+        }
+        // If a scene is active, overwrite it so clicking it again restores these settings
+        if (activeSceneName) {
+          const pages = cfg.pages.map(actions => ({
+            actions,
+            touchscreen: cfg.widgets || {},
+            widgets: cfg.widgets || {},
+          }));
+          try {
+            await fetch("/api/scene/" + encodeURIComponent(activeSceneName), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ active_page: cfg.active_page, pages }),
+            });
+          } catch(e) { console.warn("[scenes] failed to update scene", e); }
         }
         status.className = "status-msg ok";
         status.textContent = "SAVED ✓";
@@ -2112,7 +2315,153 @@
       });
     }
 
-    loadConfig().then(function() { initPreviews(); });
+    loadConfig().then(function() { initPreviews(); loadScenes(); });
+
+    /* ── Scene management ── */
+    let activeSceneName = null;
+
+    async function loadScenes() {
+      try {
+        const res = await fetch("/api/scenes");
+        if (!res.ok) return;
+        const data = await res.json();
+        activeSceneName = data.active_scene || null;
+        renderSceneList(data.scenes || []);
+      } catch (e) { console.warn("[scenes] load failed", e); }
+    }
+
+    function renderSceneList(names) {
+      const list = document.getElementById("scene-list");
+      if (!list) return;
+      const activeLabel = document.getElementById("scene-active-label");
+      if (activeLabel) {
+        if (activeSceneName) {
+          activeLabel.textContent = "\u25CF " + activeSceneName;
+          activeLabel.className = "scene-active-indicator has-active";
+        } else {
+          activeLabel.textContent = "no active scene";
+          activeLabel.className = "scene-active-indicator";
+        }
+      }
+      if (!names.length) {
+        list.innerHTML = '<span class="scene-empty-msg">No scenes saved</span>';
+        return;
+      }
+      list.innerHTML = names.map(name => {
+        const isActive = name === activeSceneName;
+        const safe = name.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        // JSON.stringify produces "name" with double quotes; &quot; prevents the attribute from breaking
+        const jsArg = JSON.stringify(name).replace(/"/g, "&quot;");
+        return `<div class="scene-item">
+          <button type="button" class="scene-activate-btn${isActive ? " active" : ""}" onclick="activateScene(${jsArg})" title="${safe}">${safe}</button>
+          <button type="button" class="scene-dup-btn" onclick="duplicateScene(${jsArg})" title="Duplicate scene">⧉</button>
+          <button type="button" class="scene-del-btn" onclick="deleteScene(${jsArg})" title="Delete scene">✕</button>
+        </div>`;
+      }).join("");
+    }
+
+    async function duplicateScene(name) {
+      sceneStatus("duplicating...", "");
+      try {
+        const res = await fetch("/api/scene/" + encodeURIComponent(name));
+        if (!res.ok) { sceneStatus("ERR: " + (await res.text()), "err"); return; }
+        const scene = await res.json();
+        // Build a unique name: "name copy", or "name copy 2" etc.
+        const allScenes = Array.from(document.querySelectorAll(".scene-activate-btn")).map(b => b.textContent.trim());
+        let newName = name + " copy";
+        let n = 2;
+        while (allScenes.includes(newName)) { newName = name + " copy " + n++; }
+        const saveRes = await fetch("/api/scene/" + encodeURIComponent(newName), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active_page: scene.active_page || 0, pages: scene.pages || [] }),
+        });
+        if (!saveRes.ok) { sceneStatus("ERR: " + (await saveRes.text()), "err"); return; }
+        sceneStatus("duplicated", "ok");
+        await loadScenes();
+      } catch (e) { sceneStatus("ERR: " + e, "err"); console.error("[scenes] duplicate failed", e); }
+    }
+
+    async function saveScene() {
+      const nameEl = document.getElementById("scene-name-input");
+      const name = (nameEl ? nameEl.value.trim() : "");
+      if (!name) { nameEl && nameEl.focus(); return; }
+      // New scenes always start blank — one empty page, no button config, no widgets
+      const blankActions = {};
+      for (let i = 1; i <= 15; i++) {
+        blankActions[String(i)] = { enabled: false, type: "command", command: "", cwd: "",
+          icon: "", icon_color: "ffffff", icon_color_last: "ffffff",
+          label: "", label_pos: "off", page: 1 };
+      }
+      const pages = [{ actions: blankActions, touchscreen: {}, widgets: {} }];
+      try {
+        const res = await fetch("/api/scene/" + encodeURIComponent(name), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ active_page: 0, pages }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        if (nameEl) nameEl.value = "";
+        sceneStatus("saved", "ok");
+        await loadScenes();
+      } catch (e) { sceneStatus("ERR: " + e, "err"); console.error("[scenes] save failed", e); }
+    }
+
+    function sceneStatus(msg, type) {
+      const el = document.getElementById("scene-status");
+      if (!el) return;
+      el.textContent = msg;
+      el.className = "scene-status" + (type ? " " + type : "");
+      if (msg) setTimeout(() => { if (el.textContent === msg) { el.textContent = ""; el.className = "scene-status"; } }, 2500);
+    }
+
+    async function activateScene(name) {
+      sceneStatus("loading...", "");
+      try {
+        const res = await fetch("/api/scenes/active", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ scene: name }),
+        });
+        if (!res.ok) { sceneStatus("ERR: " + (await res.text()), "err"); return; }
+        activeSceneName = name;
+        await loadConfig();
+        initPreviews();
+        await loadScenes();
+        sceneStatus("\u25CF loaded", "ok");
+      } catch (e) { sceneStatus("ERR: " + e, "err"); console.error("[scenes] activate failed", e); }
+    }
+
+    // Two-click delete: first click marks confirming, second click within 3s deletes
+    const _delConfirm = {};
+    function deleteScene(name) {
+      if (_delConfirm[name]) {
+        clearTimeout(_delConfirm[name].timer);
+        delete _delConfirm[name];
+        _doDeleteScene(name);
+      } else {
+        sceneStatus("click ✕ again to delete", "");
+        const timer = setTimeout(() => {
+          delete _delConfirm[name];
+          // reset button appearance
+          renderSceneList(Object.keys(_delConfirm).length ? [] : null);
+          loadScenes();
+        }, 3000);
+        _delConfirm[name] = { timer };
+        // visually mark the button
+        const btns = document.querySelectorAll(`.scene-del-btn`);
+        btns.forEach(b => { if (b.closest(".scene-item") && b.closest(".scene-item").querySelector(".scene-activate-btn") && b.closest(".scene-item").querySelector(".scene-activate-btn").textContent.trim() === name) b.classList.add("confirming"); });
+      }
+    }
+    async function _doDeleteScene(name) {
+      try {
+        const res = await fetch("/api/scene/" + encodeURIComponent(name), { method: "DELETE" });
+        if (!res.ok) { sceneStatus("ERR: " + (await res.text()), "err"); return; }
+        if (activeSceneName === name) activeSceneName = null;
+        sceneStatus("deleted", "ok");
+        await loadScenes();
+      } catch (e) { sceneStatus("ERR: " + e, "err"); console.error("[scenes] delete failed", e); }
+    }
   </script>
 </body>
 </html>

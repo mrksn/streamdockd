@@ -93,8 +93,7 @@ class StreamDockDaemon:
         action = config["actions"].get(str(key), {})
         if not action.get("enabled", False):
             return
-        run_on_release = bool(action.get("run_on_release", False))
-        should_run = state == 0 if run_on_release else state == 1
+        should_run = state == 0
         if should_run:
             action_type = str(action.get("type", "command"))
             if action_type in ("page_next", "page_prev", "page_goto"):

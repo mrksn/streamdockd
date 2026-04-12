@@ -34,7 +34,6 @@ def default_page_actions() -> Dict[str, Dict[str, Any]]:
             "cwd": "",
             "icon": "",
             "icon_color": "ffffff",
-            "run_on_release": False,
             "label": "",
             "label_pos": "bottom",
             "page": 1,

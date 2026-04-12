@@ -438,6 +438,35 @@ class StreamDockDaemon:
         # Wake the touchscreen loop immediately for the next render cycle
         self.refresh_event.set()
 
+    def apply_scene(self, scene: Dict[str, Any]):
+        """Load a scene's pages into the live config and push to device.
+
+        Replaces the config's pages/active_page with the scene's, then merges
+        touchscreen and widgets from the scene's active page so the full device
+        state reflects the activated scene.
+        """
+        pages = scene.get("pages", [])
+        if not pages:
+            return
+        active_page = int(scene.get("active_page", 0))
+        active_page = max(0, min(len(pages) - 1, active_page))
+        page_cfg = pages[active_page]
+
+        # Scene pages are stored as {actions, touchscreen, widgets} dicts.
+        # config.py expects pages[] to be flat button-key dicts ({1: {...}, ...}).
+        flat_pages = [p.get("actions", p) if isinstance(p, dict) else {} for p in pages]
+
+        cfg = self.config_store.get()
+        cfg["pages"] = flat_pages
+        cfg["active_page"] = active_page
+        cfg["actions"] = page_cfg.get("actions", cfg.get("actions", {}))
+        if "touchscreen" in page_cfg:
+            cfg["touchscreen"] = page_cfg["touchscreen"]
+        if "widgets" in page_cfg:
+            cfg["widgets"] = page_cfg["widgets"]
+        self.config_store.set(cfg)
+        self.reload_and_apply()
+
     def stop(self):
         """Signal all loops to stop."""
         self.stop_event.set()

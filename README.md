@@ -11,6 +11,7 @@ Built on top of the official [MiraboxSpace StreamDock Python SDK](https://github
 - Assigns shell commands to physical buttons (press or release)
 - Sets per-button icons from local image files or [Iconify](https://iconify.design/) icon names (e.g. `mdi:github`)
 - **Multiple button pages** — add as many pages of 15 button configs as needed and navigate between them with prev/next/go-to shortcuts or dedicated hardware buttons
+- **Scenes** — save named snapshots of any configuration (buttons, pages, display widgets) and activate them instantly from the UI
 - Controls touchscreen/secondary display: clock, system stats, or a custom image
 - Configurable brightness and auto-reconnect on device disconnect
 - Web UI at `http://127.0.0.1:17890` — no extra dependencies, no Electron
@@ -119,6 +120,18 @@ Navigation buttons still display their `icon` / `label` on the device as normal.
 - The web UI shows a **Pages** bar above the button grid with **← PREV**, **NEXT →**, **+ ADD PAGE**, **DEL PAGE**, and a **Go to** number field.
 - Clicking **SAVE CONFIG** persists all pages and the currently active page to disk and applies the active page's icons to the device immediately.
 - Switching pages in the UI is client-side only until you save — hit **SAVE CONFIG** to push the change to the device.
+
+### Scenes
+
+Scenes let you save and restore complete configurations (all button pages + display widgets) as named snapshots.
+
+- The **Scenes** panel appears to the right of the icon preview grid.
+- Type a name and click **SAVE** to create a new empty scene — configure it from scratch by activating it and filling in buttons, then saving.
+- Click a scene name to **activate** it: the scene's button config and display settings are loaded onto the device immediately.
+- The ⧉ button **duplicates** a scene with an auto-generated name (`<name> copy`).
+- The ✕ button **deletes** a scene (requires two clicks within 3 s as a safety guard).
+- While a scene is active, **SAVE CONFIG** also writes the changes back to that scene so re-activating it later restores them.
+- Scenes are stored in `~/.config/streamdockd/scenes.json` (same config directory as `config.json`).
 
 ### Icon values
 

@@ -15,12 +15,14 @@ if str(_sdk_src) not in sys.path:
 from config import ConfigStore, resolve_config_path
 from device import StreamDockDaemon
 from icon_manager import IconManager
+from scene import SceneStore
 from server import RequestHandler
 from widgets import WidgetRenderer
 
 
 def main():
     config_store = ConfigStore(resolve_config_path())
+    scene_store = SceneStore(config_store.path.parent / "scenes.json")
     icon_manager = IconManager()
     widget_renderer = WidgetRenderer(icon_manager)
     daemon = StreamDockDaemon(config_store, icon_manager, widget_renderer)
@@ -31,6 +33,7 @@ def main():
 
     RequestHandler.daemon_ref = daemon
     RequestHandler.config_ref = config_store
+    RequestHandler.scene_ref = scene_store
 
     device_thread = threading.Thread(target=daemon.start_device_loop, daemon=True)
     device_thread.start()

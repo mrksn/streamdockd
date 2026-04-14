@@ -1,7 +1,8 @@
 [Unit]
 Description=StreamDock daemon (web control UI + device driver)
 Documentation=https://github.com/MiraboxSpace/StreamDock-Device-SDK
-After=network.target
+After=graphical-session.target
+PartOf=graphical-session.target
 
 [Service]
 Type=simple

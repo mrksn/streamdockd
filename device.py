@@ -56,13 +56,20 @@ class StreamDockDaemon:
         env.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
 
         xdg = env.get("XDG_RUNTIME_DIR", "")
+        if not xdg:
+            fallback_xdg = f"/run/user/{os.getuid()}"
+            if os.path.isdir(fallback_xdg):
+                xdg = fallback_xdg
+                env["XDG_RUNTIME_DIR"] = xdg
 
         # Reconstruct common session vars when user-manager env is incomplete.
         if xdg and "WAYLAND_DISPLAY" not in env:
-            for wayland_socket in ("wayland-0", "wayland-1"):
-                if os.path.exists(os.path.join(xdg, wayland_socket)):
-                    env["WAYLAND_DISPLAY"] = wayland_socket
-                    break
+            wayland_sockets = sorted(
+                os.path.basename(path)
+                for path in _glob.glob(os.path.join(xdg, "wayland-*"))
+            )
+            if wayland_sockets:
+                env["WAYLAND_DISPLAY"] = wayland_sockets[0]
 
         if xdg and "DBUS_SESSION_BUS_ADDRESS" not in env:
             bus_path = os.path.join(xdg, "bus")
@@ -73,11 +80,10 @@ class StreamDockDaemon:
         if "QT_QPA_PLATFORM" not in env and "WAYLAND_DISPLAY" in env:
             env["QT_QPA_PLATFORM"] = "wayland;xcb"
 
-        if "XAUTHORITY" not in env:
-            if xdg:
-                candidates = _glob.glob(os.path.join(xdg, "xauth*"))
-                if candidates:
-                    env["XAUTHORITY"] = candidates[0]
+        if "XAUTHORITY" not in env and xdg:
+            candidates = _glob.glob(os.path.join(xdg, "xauth*"))
+            if candidates:
+                env["XAUTHORITY"] = candidates[0]
         return env
 
     def _run_action(self, action: Dict[str, Any], key: int):

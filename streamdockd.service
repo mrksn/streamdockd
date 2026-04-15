@@ -1,6 +1,7 @@
 [Unit]
 Description=StreamDock daemon (web control UI + device driver)
 Documentation=https://github.com/MiraboxSpace/StreamDock-Device-SDK
+Wants=graphical-session.target
 After=graphical-session.target
 PartOf=graphical-session.target
 
@@ -25,4 +26,4 @@ PrivateTmp=true
 NoNewPrivileges=true
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target

@@ -54,8 +54,26 @@ class StreamDockDaemon:
         }
         env = {k: v for k, v in os.environ.items() if k in keep_keys}
         env.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
+
+        xdg = env.get("XDG_RUNTIME_DIR", "")
+
+        # Reconstruct common session vars when user-manager env is incomplete.
+        if xdg and "WAYLAND_DISPLAY" not in env:
+            for wayland_socket in ("wayland-0", "wayland-1"):
+                if os.path.exists(os.path.join(xdg, wayland_socket)):
+                    env["WAYLAND_DISPLAY"] = wayland_socket
+                    break
+
+        if xdg and "DBUS_SESSION_BUS_ADDRESS" not in env:
+            bus_path = os.path.join(xdg, "bus")
+            if os.path.exists(bus_path):
+                env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus_path}"
+
+        # Prefer native Wayland for Qt apps, but keep xcb fallback.
+        if "QT_QPA_PLATFORM" not in env and "WAYLAND_DISPLAY" in env:
+            env["QT_QPA_PLATFORM"] = "wayland;xcb"
+
         if "XAUTHORITY" not in env:
-            xdg = env.get("XDG_RUNTIME_DIR", "")
             if xdg:
                 candidates = _glob.glob(os.path.join(xdg, "xauth*"))
                 if candidates:

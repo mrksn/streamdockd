@@ -1,6 +1,7 @@
 """StreamDock device lifecycle, button actions, and display update orchestration."""
 
 import glob as _glob
+import datetime as dt
 import os
 import subprocess
 import tempfile
@@ -43,17 +44,8 @@ class StreamDockDaemon:
     @staticmethod
     def _clean_env() -> Dict[str, str]:
         """Return an environment safe for launching GUI subprocesses."""
-        keep_keys = {
-            "HOME", "USER", "LOGNAME", "SHELL",
-            "LANG", "LANGUAGE", "LC_ALL", "LC_MESSAGES",
-            "DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY",
-            "DBUS_SESSION_BUS_ADDRESS",
-            "XDG_RUNTIME_DIR", "XDG_SESSION_TYPE",
-            "XDG_CURRENT_DESKTOP", "XDG_SESSION_DESKTOP",
-            "QT_QPA_PLATFORM", "GDK_BACKEND",
-        }
-        env = {k: v for k, v in os.environ.items() if k in keep_keys}
-        env.setdefault("PATH", "/usr/local/bin:/usr/bin:/bin")
+        env = dict(os.environ)
+        env["PATH"] = "/usr/local/bin:/usr/bin:/bin"
 
         xdg = env.get("XDG_RUNTIME_DIR", "")
         if not xdg:
@@ -95,15 +87,33 @@ class StreamDockDaemon:
             print(f"[warn] key {key}: cwd does not exist: {cwd}", flush=True)
             cwd = None
         print(f"[exec] key={key} cmd={command}", flush=True)
-        subprocess.Popen(
-            command,
-            shell=True,
-            executable="/bin/bash",
-            cwd=cwd,
-            env=self._clean_env(),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        env = self._clean_env()
+        log_root = self.icon_manager.icon_cache_dir().parent
+        log_root.mkdir(parents=True, exist_ok=True)
+        log_path = log_root / "actions.log"
+        ts = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            with open(log_path, "a", encoding="utf-8") as log:
+                log.write(f"\n[{ts}] key={key} cmd={command}\n")
+                log.write(
+                    " env: DISPLAY={display} WAYLAND_DISPLAY={wayland} "
+                    "DBUS_SESSION_BUS_ADDRESS={dbus} XDG_RUNTIME_DIR={xdg}\n".format(
+                        display=env.get("DISPLAY", ""),
+                        wayland=env.get("WAYLAND_DISPLAY", ""),
+                        dbus=env.get("DBUS_SESSION_BUS_ADDRESS", ""),
+                        xdg=env.get("XDG_RUNTIME_DIR", ""),
+                    )
+                )
+                proc = subprocess.Popen(
+                    ["/bin/bash", "-lc", command],
+                    cwd=cwd,
+                    env=env,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                )
+            print(f"[exec] key={key} pid={proc.pid} log={log_path}", flush=True)
+        except Exception as exc:
+            print(f"[warn] key {key}: launch failed: {exc}", flush=True)
 
     def _on_input(self, _device, event):
         if event.event_type != EventType.BUTTON:

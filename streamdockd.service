@@ -27,7 +27,9 @@ RuntimeDirectoryMode=0700
 # Sandboxing — keep what's safe, drop ProtectSystem strict since
 # the precompiled .so writes to cwd (which is now the runtime dir above).
 PrivateTmp=true
-NoNewPrivileges=true
+# Keep privilege restrictions compatible with Electron/Chromium app launchers
+# (Obsidian, VS Code, Spotify), which may require sandbox setup in child process.
+NoNewPrivileges=false
 
 [Install]
 WantedBy=graphical-session.target

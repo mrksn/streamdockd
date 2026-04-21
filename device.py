@@ -59,6 +59,7 @@ class StreamDockDaemon:
             wayland_sockets = sorted(
                 os.path.basename(path)
                 for path in _glob.glob(os.path.join(xdg, "wayland-*"))
+                if not path.endswith(".lock")
             )
             if wayland_sockets:
                 env["WAYLAND_DISPLAY"] = wayland_sockets[0]

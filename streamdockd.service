@@ -19,7 +19,7 @@ Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
 # HYPRLAND_INSTANCE_SIGNATURE and XDG_CURRENT_DESKTOP are required for
 # Hyprland sessions (import them from Hyprland config with:
 #   exec-once = systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP)
-PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XAUTHORITY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XAUTHORITY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
 
 # libtransport.so writes Temporary.jpg relative to cwd.
 # RuntimeDirectory creates /run/user/<uid>/streamdockd (writable, cleaned on stop).

@@ -3,6 +3,7 @@
 import glob as _glob
 import datetime as dt
 import os
+import shlex
 import subprocess
 import tempfile
 import threading
@@ -59,6 +60,7 @@ class StreamDockDaemon:
             wayland_sockets = sorted(
                 os.path.basename(path)
                 for path in _glob.glob(os.path.join(xdg, "wayland-*"))
+                if not path.endswith(".lock")
             )
             if wayland_sockets:
                 env["WAYLAND_DISPLAY"] = wayland_sockets[0]
@@ -67,6 +69,27 @@ class StreamDockDaemon:
             bus_path = os.path.join(xdg, "bus")
             if os.path.exists(bus_path):
                 env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus_path}"
+
+        # Set session type so Electron/Qt apps know they're on Wayland.
+        # Force to "wayland" whenever WAYLAND_DISPLAY is present — the service
+        # may inherit XDG_SESSION_TYPE=unspecified from the system manager
+        # which causes Electron to ignore ELECTRON_OZONE_PLATFORM_HINT.
+        if "WAYLAND_DISPLAY" in env:
+            env["XDG_SESSION_TYPE"] = "wayland"
+
+        # GDK must use the Wayland backend so Electron/GTK don't try X11.
+        if "GDK_BACKEND" not in env and "WAYLAND_DISPLAY" in env:
+            env["GDK_BACKEND"] = "wayland"
+
+        # Tell Electron to auto-select Wayland (ozone) without needing
+        # per-command --ozone-platform=wayland flags.
+        if "ELECTRON_OZONE_PLATFORM_HINT" not in env and "WAYLAND_DISPLAY" in env:
+            env["ELECTRON_OZONE_PLATFORM_HINT"] = "wayland"
+
+        # Electron/Chromium uses VA-API for GPU acceleration; without this on
+        # NVIDIA it segfaults during GPU init.
+        if "LIBVA_DRIVER_NAME" not in env and os.path.exists("/dev/nvidia0"):
+            env["LIBVA_DRIVER_NAME"] = "nvidia"
 
         # Prefer native Wayland for Qt apps, but keep xcb fallback.
         if "QT_QPA_PLATFORM" not in env and "WAYLAND_DISPLAY" in env:
@@ -88,7 +111,7 @@ class StreamDockDaemon:
             cwd = None
         print(f"[exec] key={key} cmd={command}", flush=True)
         env = self._clean_env()
-        log_root = self.icon_manager.icon_cache_dir().parent
+        log_root = self.icon_manager._icon_cache_dir().parent
         log_root.mkdir(parents=True, exist_ok=True)
         log_path = log_root / "actions.log"
         ts = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -97,15 +120,42 @@ class StreamDockDaemon:
                 log.write(f"\n[{ts}] key={key} cmd={command}\n")
                 log.write(
                     " env: DISPLAY={display} WAYLAND_DISPLAY={wayland} "
-                    "DBUS_SESSION_BUS_ADDRESS={dbus} XDG_RUNTIME_DIR={xdg}\n".format(
+                    "DBUS_SESSION_BUS_ADDRESS={dbus} XDG_RUNTIME_DIR={xdg} "
+                    "GDK_BACKEND={gdk} ELECTRON_OZONE_PLATFORM_HINT={ozone} "
+                    "XDG_SESSION_TYPE={stype}\n".format(
                         display=env.get("DISPLAY", ""),
                         wayland=env.get("WAYLAND_DISPLAY", ""),
                         dbus=env.get("DBUS_SESSION_BUS_ADDRESS", ""),
                         xdg=env.get("XDG_RUNTIME_DIR", ""),
+                        gdk=env.get("GDK_BACKEND", ""),
+                        ozone=env.get("ELECTRON_OZONE_PLATFORM_HINT", ""),
+                        stype=env.get("XDG_SESSION_TYPE", ""),
                     )
                 )
+                # Launch in a transient systemd user scope so the child
+                # process runs outside this service's cgroup. This is required
+                # for Electron/Chromium apps whose sandbox cannot function
+                # inside a foreign cgroup (they segfault otherwise).
+                # Inline critical GUI env vars directly into the bash command
+                # so they are guaranteed to reach the application regardless
+                # of how systemd-run handles env inheritance for scope units.
+                _env_keys = [
+                    "DISPLAY", "WAYLAND_DISPLAY", "DBUS_SESSION_BUS_ADDRESS",
+                    "XDG_RUNTIME_DIR", "XAUTHORITY", "XDG_SESSION_TYPE",
+                    "GDK_BACKEND", "QT_QPA_PLATFORM",
+                    "ELECTRON_OZONE_PLATFORM_HINT", "LIBVA_DRIVER_NAME",
+                    "HYPRLAND_INSTANCE_SIGNATURE", "XDG_CURRENT_DESKTOP",
+                ]
+                exports = " ".join(
+                    f"{k}={shlex.quote(env[k])}"
+                    for k in _env_keys
+                    if k in env
+                )
+                wrapped = f"env {exports} {command}" if exports else command
+                log.write(f" wrapped: {wrapped}\n")
                 proc = subprocess.Popen(
-                    ["/bin/bash", "-lc", command],
+                    ["systemd-run", "--user", "--scope",
+                     "--", "/bin/bash", "-c", wrapped],
                     cwd=cwd,
                     env=env,
                     stdout=log,

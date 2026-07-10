@@ -162,6 +162,25 @@ journalctl --user -u streamdockd.service -f
 systemctl --user restart streamdockd.service
 ```
 
+## Hyprland setup
+
+Hyprland does not automatically export session environment variables to the systemd user-service manager. Without this, the service may not start automatically and button commands may fail to open GUI applications.
+
+Add the following lines to your `~/.config/hypr/hyprland.conf`:
+
+```ini
+exec-once = systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP
+```
+
+This makes `WAYLAND_DISPLAY`, `HYPRLAND_INSTANCE_SIGNATURE`, and `XDG_CURRENT_DESKTOP` available to all systemd user services (including `streamdockd`) and to D-Bus-activated applications.
+
+After adding these lines, restart Hyprland or run the commands manually once, then:
+
+```sh
+systemctl --user enable --now streamdockd.service
+```
+
 ## License
 
 The daemon, service file, udev rules, and PKGBUILD in this repository are MIT licensed.

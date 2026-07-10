@@ -3,7 +3,6 @@ Description=StreamDock daemon (web control UI + device driver)
 Documentation=https://github.com/MiraboxSpace/StreamDock-Device-SDK
 Wants=graphical-session.target
 After=graphical-session.target
-PartOf=graphical-session.target
 
 [Service]
 Type=simple
@@ -17,7 +16,10 @@ Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
 
 # Pass the graphical session environment so button commands can launch
 # GUI apps (Wayland/X11, D-Bus, etc.)
-PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XAUTHORITY
+# HYPRLAND_INSTANCE_SIGNATURE and XDG_CURRENT_DESKTOP are required for
+# Hyprland sessions (import them from Hyprland config with:
+#   exec-once = systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP)
+PassEnvironment=DISPLAY WAYLAND_DISPLAY DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR XAUTHORITY HYPRLAND_INSTANCE_SIGNATURE XDG_CURRENT_DESKTOP XDG_SESSION_TYPE
 
 # libtransport.so writes Temporary.jpg relative to cwd.
 # RuntimeDirectory creates /run/user/<uid>/streamdockd (writable, cleaned on stop).
@@ -32,4 +34,8 @@ PrivateTmp=true
 NoNewPrivileges=false
 
 [Install]
-WantedBy=graphical-session.target
+# graphical-session.target is preferred (GNOME/KDE activate it automatically).
+# default.target is the fallback for Hyprland and other compositors that do
+# not activate graphical-session.target; the daemon tolerates early startup
+# by continuously polling for the device until it appears.
+WantedBy=graphical-session.target default.target
